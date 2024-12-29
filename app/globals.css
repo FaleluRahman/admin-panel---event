@@ -19,3 +19,9 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.sideWidth {
+  width: 300px !important;
+}.sideWidth-bn{
+  width: 370px !important;
+}
