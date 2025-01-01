@@ -28,7 +28,7 @@ console.log(addschedule);
           <div className='flex w-full justify-end'>
             <div className="jsx-bf6cc301a9c5c476 relative flex-1 md:w-80">
               <input type="text" placeholder="Search programs..."
-                className="jsx-bf6cc301a9c5c476 w-[60%] ml-96 px-2 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary pr-10"
+                className="jsx-bf6cc301a9c5c476 w-[50%] ml-96 px-2 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary pr-10"
                 value="" />
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-search absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400">
                 <circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
