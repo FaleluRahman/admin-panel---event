@@ -1,5 +1,5 @@
 import { Select } from "antd";
-import {useState } from "react";
+import { useState } from "react";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import { BiSolidImageAdd } from "react-icons/bi";
@@ -9,15 +9,16 @@ import { ROOT_URL } from "./data/func";
 export const TitleInput = ({
   formik,
   placeholder,
-  name,hieght
+  name,
+  hieght,
 }: {
   formik: any;
   placeholder: string;
   name: string;
   label: string;
-  type?: string;hieght?:string
+  type?: string;
+  hieght?: string;
 }) => {
-
   const handleEditorChange = (event: any, editor: any) => {
     const data = editor.getData(); // Get the updated data from the editor
     formik.setFieldValue(name, data); // Update the corresponding Formik field
@@ -30,7 +31,7 @@ export const TitleInput = ({
           formik.errors[name] && formik.touched[name]
             ? "bg-red-50 border-red-500 border-b-2 "
             : "bg-white border-black"
-        } ${hieght?hieght:'h-40'} text-xl font-semibold text-black`}
+        } ${hieght ? hieght : "h-40"} text-xl font-semibold text-black`}
         name={name}
         onChange={formik.handleChange}
         value={formik.values[name]}
@@ -67,10 +68,11 @@ interface BodyInputProps {
 //     <div className="p-2 bg-white">
 //       <div className="text-sm text-blue-600 my-1 "></div>
 //       <CKEditor
-//   editor={ClassicEditor}
-//   data={formik.values[name]} // Use 'data' instead of 'initData'
-//   onChange={handleEditorChange}
-// />
+//         editor={ClassicEditor}
+        
+//         data={formik.values[name]} // Use 'data' instead of 'initData'
+//         onChange={handleEditorChange}
+//       />
 
 //       <div>
 //         {formik.errors[name] && formik.touched[name] && (
