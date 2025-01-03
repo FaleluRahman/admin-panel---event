@@ -20,22 +20,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.sideWidth{
+.sideWidth {
   width: 300px !important;
-}.sideWidth-bn{
+}
+.sideWidth-bn {
   width: 370px !important;
 }
 
 .Crop-Controls input[type="file"]::file-selector-button {
   border-radius: 8px;
   padding: 0 16px;
-  height: 40px;color: #fff;
+  height: 40px;
+  color: #fff;
   cursor: pointer;
-  background-color: #2a2a2a;border: none;
+  background-color: #2a2a2a;
+  border: none;
   box-shadow: 0px 1px 0px rgba(0, 0, 0, 0.05);
   margin-right: 16px;
   transition: background-color 200ms;
 }
-.crop-div input[type="number"]{
-  @apply w-16 bg-zinc-100 p-1 px-2 rounded-md border border-zinc-800
+.crop-div input[type="number"] {
+  @apply w-16 bg-zinc-100 p-1 px-2 rounded-md border border-zinc-800;
+}
+input,
+select {
+  @apply w-full bg-zinc-100 py-2 px-3 rounded-md border border-zinc-800;
 }
