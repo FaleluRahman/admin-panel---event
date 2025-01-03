@@ -1,10 +1,10 @@
 "use client";
 
+import { deleteArticle } from "@/app/events/Add/func";
 import { useRouter } from "next/navigation";
 import { MdDelete, MdDeleteOutline } from "react-icons/md";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { deleteArticle } from "../events/Article/func";
 // import { deleteArticle } from "./func";
 
 

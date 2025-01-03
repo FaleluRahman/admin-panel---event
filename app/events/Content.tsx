@@ -1,35 +1,30 @@
 "use client";
-// import Spinner from "@/components/common/Spinner";
 import React, { useCallback, useEffect, useState } from "react";
 import { AiTwotoneDelete } from "react-icons/ai";
 import { CgPlayListCheck } from "react-icons/cg";
 import { GrClear, GrEdit } from "react-icons/gr";
 import { HiMiniEye } from "react-icons/hi2";
-// import { LuFileEdit } from "react-icons/lu";
 import {
   MdDelete,
   MdDeleteOutline,
+  MdEditDocument,
   MdOutlinePublishedWithChanges,
 } from "react-icons/md";
-// import DeleteItem from "./Add/Delete";
-// import { decodeId, encodeId } from "@/components/common/Decode";
-// import { getRelativeTime } from "@/components/common/DateConvert";
+import DeleteItem from "./Add/Delete";
 import { TbPhotoUp } from "react-icons/tb";
-// import { ROOT_URL } from "@/components/data/func";
+import { ROOT_URL } from "@/components/data/func";
 import { IoSearchOutline } from "react-icons/io5";
 import Link from "next/link";
-import { RiAddCircleFill, RiFileEditFill } from "react-icons/ri";
+import { RiAddCircleFill } from "react-icons/ri";
 import { Paginator, PaginatorPageChangeEvent } from "primereact/paginator";
 import "primereact/resources/themes/saga-blue/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
-import { getArticle } from "../events/Article/func";
-import Spinner from "./Spinner";
-import DeleteItem from "./Delete";
-import { ROOT_URL } from "./func";
-import Empty from "./Empty";
-// import { getArticle } from "@/events/Article/func";
-// import Empty from "@/components/common/Empty";
+import { getArticle } from "./Add/func";
+import Spinner from "@/components/Spinner";
+import { getRelativeTime } from "@/components/DateConvert";
+import { encodeId } from "@/components/Decode";
+import Empty from "@/components/Empty";
 
 function Content() {
   const [imageView, setImageView] = useState<any>(false);
@@ -145,7 +140,7 @@ function Content() {
             </div>
           </div>{" "}
           <Link
-            href={"/admin/articles/Add"}
+            href={"/events/Add"}
             className="gap-2 cursor-pointer p-[8px] px-4 bg-zinc-800 hover:shadow-lg hover:-translate-y-1 duration-200 rounded-md text-white w-fit shadow-lg flex items-center"
           >
             <RiAddCircleFill />
@@ -175,9 +170,9 @@ function Content() {
                 <p className="col-span-2 line-clamp-1 text-center font-semibold text-blue-600">
                   {item?.category}
                 </p>
-                {/* <p className="col-span-2 text-center">
+                <p className="col-span-2 text-center">
                   {getRelativeTime(item?.date)}
-                </p> */}
+                </p>
                 <div className="col-span-2 flex items-center gap-2 justify-center">
                   {item?.image !== "" && (
                     <div
@@ -190,10 +185,10 @@ function Content() {
                   )}
                   <a
                     data-tip="Edit"
-                    href={`/admin/articles/Edit/${(item?.id)}`}
+                    href={`/events/Edit/${encodeId(item?.id)}`}
                     className="tooltip h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center cursor-pointer"
                   >
-                    <RiFileEditFill className="text-xl text-blue-600 " />
+                    <MdEditDocument className="text-xl text-blue-600 " />
                   </a>
                   {/* <div className="h-10 w-10 rounded-lg bg-red-50 flex items-center justify-center cursor-pointer">
                       <MdDeleteOutline className="text-xl text-red-500 " />
