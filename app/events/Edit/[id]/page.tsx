@@ -2,8 +2,9 @@ import React from "react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 // import UploadForm from "./Form";
 import { getArticlebyId } from "../../Add/func";
-import { decodeId } from "@/components/common/Decode";
+// import { decodeId } from "@/components/common/Decode";
 import dynamic from "next/dynamic";
+import { decodeId } from "@/components/Decode";
 async function page({ params }: { params: any }) {
   const UploadForm = dynamic(() => import('./Form'), { ssr: false });
   const ids = decodeId(params?.id);
