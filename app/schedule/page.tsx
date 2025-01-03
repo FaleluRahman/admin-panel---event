@@ -1,6 +1,5 @@
+import Shclist from '@/components/Shclist'
 import React from 'react'
-import Shclist from '../componets/Shclist'
-// import Shclist from '../componets/shclist'
 
 const page = () => {
   return (

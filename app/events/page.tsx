@@ -1,11 +1,19 @@
-import React from 'react'
+import React from "react";
+import Content from "./Content";
+import { getArticle } from "./Add/func";
+import AdminLayout from "@/components/layouts/AdminLayout";
+export const dynamic = "force-dynamic";
 
-const page = () => {
+async function page() {
+  // const Articles = await getArticle();
+
   return (
-    <div>
-      
-    </div>
-  )
+    <>
+      <AdminLayout active={"Articles"}>
+      <Content/>
+     </AdminLayout>
+    </>
+  );
 }
 
-export default page
+export default page;

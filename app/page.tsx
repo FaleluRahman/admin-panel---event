@@ -1,12 +1,18 @@
-import Image from "next/image";
-import AdminPage from "./componets/events";
-import Dashboard from "./componets/Dashboard";
+import React from "react";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import Content from "./events/Content";
+export const dynamic = "force-dynamic";
 
-export default function Home() {
+async function Home() {
+  // const Articles = await getArticle();
+
   return (
-    
-    <div>
-      
-    </div>
+    <>
+      <AdminLayout active={"Articles"}>
+      <Content/>
+     </AdminLayout>
+    </>
   );
 }
+
+export default Home;
