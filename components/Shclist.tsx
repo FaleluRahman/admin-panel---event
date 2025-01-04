@@ -7,7 +7,14 @@ import { AxiosInStance } from "@/lib/axios";
 import { PiNutFill } from "react-icons/pi";
 import { programs } from "@/data/programs";
 
-const categories = ["senior", "junior", "subjunior", "premier", "minor"];
+const categories = [
+  "general",
+  "senior",
+  "junior",
+  "subjunior",
+  "premier",
+  "minor",
+];
 const rowIndex = [
   {
     time: "09:30-11:00 AM",
@@ -270,7 +277,7 @@ const Shclist = () => {
               if (res?.data?.success) {
                 alert("Synced Successfully");
                 fetchData();
-              }else{
+              } else {
                 alert("Failed to Sync");
               }
             }}

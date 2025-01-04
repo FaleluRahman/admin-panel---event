@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteArticle } from "@/app/events/Add/func";
+import { deleteArticle } from "@/app/events/add/func";
 import { useRouter } from "next/navigation";
 import { MdDelete, MdDeleteOutline } from "react-icons/md";
 import { toast } from 'react-toastify';

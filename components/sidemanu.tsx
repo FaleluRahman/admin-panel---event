@@ -7,13 +7,15 @@ import Image from "next/image";
 
 
 import { usePathname } from "next/navigation";
+import { GrCafeteria } from "react-icons/gr";
+import { SiEclipseadoptium } from "react-icons/si";
 
 function SideMenu(active:any) {
   const pathname = usePathname()
   
   const NAV_ITEMS: any = [
     {
-      link: "/",
+      link: "/events",
       icon: <BiSolidMessageSquareEdit />      ,
       label: "Events",
     },
@@ -23,9 +25,14 @@ function SideMenu(active:any) {
         label: "Schedule",
       },
       {
-        link: "/notifications",
-        icon: <PiNewspaperClippingFill />      ,
-        label: "Notification",
+        link: "/shops/vr-hub",
+        icon:<SiEclipseadoptium />     ,
+        label: "VR Hub",
+      },
+      {
+        link: "/shops/cafe",
+        icon: <GrCafeteria />   ,
+        label: "cafe'25",
       },
     
   ];

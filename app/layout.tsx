@@ -4,6 +4,7 @@ import "./globals.css";
 import ToastBox from "@/components/Toast";
 import PageLoader from "@/components/Loader";
 
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
       <ToastBox/>
+      
       <PageLoader/>{children}</body>
     </html>
   );
