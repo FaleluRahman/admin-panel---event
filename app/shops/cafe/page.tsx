@@ -2,11 +2,10 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import { AxiosInStance } from "@/lib/axios";
 import axios from "axios";
 import React from "react";
-
+const dynamic = "force-dynamic";
 async function page() {
   const res = await AxiosInStance.get(
-    "qrscans/payment.php?api=b1daf1bbc7bbd214045af&id=" +
-      1
+    "qrscans/payment.php?api=b1daf1bbc7bbd214045af&id=" + 1
   );
   const data = res.data.data || null;
   return (
@@ -14,7 +13,7 @@ async function page() {
       <div>
         <div>
           <h1 className="text-5xl font-bold text-center py-2 text-black">
-            CAFE 
+            CAFE
           </h1>
           <div className="w-4/5 mx-auto">
             <h2>

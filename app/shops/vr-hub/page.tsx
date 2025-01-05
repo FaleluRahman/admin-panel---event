@@ -2,6 +2,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import { AxiosInStance } from "@/lib/axios";
 import axios from "axios";
 import React from "react";
+const dynamic = "force-dynamic";
 
 async function page() {
   const res = await AxiosInStance.get(
@@ -14,7 +15,6 @@ async function page() {
         <div>
           <h1 className="text-5xl font-bold text-center py-2 text-black">
             VR HUB
-            
           </h1>
           <div className="w-4/5 mx-auto">
             <h2>
