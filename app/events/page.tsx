@@ -19,7 +19,7 @@ async function page() {
          <div className="  flex w-full flex-col justify-end">
          <a 
           className="bg-blue-500 rounded-xl px-2 py-1 w-fit  "
-          href="/events/add">Add Event</a>
+          href="/events/Add">Add Event</a>
          </div>
      
           {events.map((evt: any, index: number) => (
