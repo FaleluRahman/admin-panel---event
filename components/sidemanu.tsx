@@ -40,7 +40,7 @@ function SideMenu(active:any) {
   <div className="z-20 sideWidth fixed top-0 left-0 h-screen  bg-zinc-900 p-10 text-white flex flex-col items-center justify-start gap-10">
     <div className="flex items-center h-60 w-60 justify-center bg-zinc-800  rounded-2xl p-10 mt-10 group">
 
-<Image src="/images/logo-01.png" alt="Sidebar Image" width={150} height={500} className="h-[100%] w-[100%] object-contain" priority/>
+<Image src="/images/Secondary_Logo.png" alt="Sidebar Image" width={150} height={500} className="h-[100%] w-[100%] object-contain" priority/>
 
       {/* <img src="prism logo light dd.png" alt="" className="h-40 duration-300 group-hover:scale-105"/> */}
       </div>
