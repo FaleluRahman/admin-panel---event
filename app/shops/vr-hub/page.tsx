@@ -16,7 +16,7 @@ async function page() {
           <h1 className="text-5xl font-bold text-center py-2 text-black">
             VR HUB
           </h1>
-          <div className="w-4/5 mx-auto">
+          <div className="w-4/5 mx-auto text-black">
             <h2>
               Total Points Recieved: <b>{data?.points || 0}</b>
             </h2>

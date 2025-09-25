@@ -1,9 +1,14 @@
 import React from "react";
+import SideMenu from "../sidemanu";
 function GuestLayout(props: any,cat:string) {
     console.log(cat);
     
   return (
-    <div></div>
+    <div>
+
+            {/* <SideMenu active={props.active}/> */}
+
+    </div>
     // <main className="flex w-full flex-col">
     //     <Header/>
     //     {/* <SubHeader active={cat}/> */}
