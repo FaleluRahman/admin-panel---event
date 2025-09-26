@@ -58,11 +58,11 @@ export default function Page() {
     setShowQRModal(true);
   };
 
-  // QR Modal Component with Dynamic Regeneration
+  // QR Modal Component with 2-Minute Timing to Match PHP
   const QRModal = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [qrToken, setQrToken] = useState('');
-    const [timeLeft, setTimeLeft] = useState(5);
+    const [timeLeft, setTimeLeft] = useState(120); // Changed to 120 seconds (2 minutes)
     const [isGenerating, setIsGenerating] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,7 +74,7 @@ export default function Page() {
       return `${timestamp}_${randomStr}`;
     };
 
-    // Generate QR Code with time-based security
+    // Generate QR Code with time-based security (matches PHP 2-minute window)
     const generateQRCode = async () => {
       if (!canvasRef.current || !selectedEvent) return;
       
@@ -82,17 +82,20 @@ export default function Page() {
       const newToken = generateQRToken();
       setQrToken(newToken);
       
-   
+      // Use current timestamp in seconds to match PHP
       const timestamp = Math.floor(Date.now() / 1000); 
       const qrData = `event=${selectedEvent.id}&t=${timestamp}`;
       
-      const color = [
-        { dark: '#1F2937', light: '#FFFFFF' }, 
-  
+      console.log("Generated QR Data:", qrData); // Debug log
+      
+      const colors = [
+        { dark: '#1F2937', light: '#FFFFFF' },
+        { dark: '#DD0F19', light: '#FFFFFF' },
+        { dark: '#EC5914', light: '#FFFFFF' },
       ];
       
-      const colorIndex = Math.floor(Date.now() / 5000) % color.length;
-      const selectedColors = color[colorIndex];
+      const colorIndex = Math.floor(Date.now() / 60000) % colors.length; // Change color every minute
+      const selectedColors = colors[colorIndex];
       
       try {
         await QRCode.toCanvas(canvasRef.current, qrData, {
@@ -101,6 +104,7 @@ export default function Page() {
           color: selectedColors,
           errorCorrectionLevel: 'M'
         });
+        console.log("QR Code generated successfully with timestamp:", timestamp);
       } catch (err) {
         console.error('QR Code generation failed:', err);
       } finally {
@@ -109,29 +113,36 @@ export default function Page() {
     };
 
     const startCountdown = () => {
-      setTimeLeft(5);
+      setTimeLeft(120); // Start with 2 minutes
       if (countdownRef.current) clearInterval(countdownRef.current);
       
       countdownRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            return 5;
+            return 120; // Reset to 2 minutes when countdown reaches 0
           }
           return prev - 1;
         });
       }, 1000);
     };
 
-   
+    // Format time display (MM:SS)
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     useEffect(() => {
       if (showQRModal && selectedEvent) {
         generateQRCode();
         startCountdown();
         
         if (intervalRef.current) clearInterval(intervalRef.current);
+        // Generate new QR every 2 minutes to match PHP expiration
         intervalRef.current = setInterval(() => {
           generateQRCode();
-        }, 5000);
+        }, 120000); // 2 minutes = 120,000 milliseconds
       }
 
       return () => {
@@ -159,7 +170,7 @@ export default function Page() {
             onClick={handleCloseModal}
             className="absolute top-4 right-4 z-10 w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105"
           >
-           <CircleX />
+           <CircleX className="w-5 h-5 text-white" />
           </button>
 
           {/* Top accent gradient */}
@@ -175,6 +186,7 @@ export default function Page() {
                 {selectedEvent.title}
               </h2>
               <p className="text-gray-500 text-sm">Scan the QR code to collect points</p>
+              <p className="text-xs text-gray-400 mt-1">Valid for 2 minutes per QR code</p>
             </div>
           </div>
 
@@ -209,45 +221,55 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Countdown Timer with animation */}
+              {/* Countdown Timer with 2-minute display */}
               <div className="absolute top-3 right-3">
                 <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-gray-200">
                   <div className="flex items-center space-x-2">
                     <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      timeLeft <= 2 ? 'bg-red-500 animate-ping' : 
-                      timeLeft <= 3 ? 'bg-yellow-500 animate-pulse' : 
+                      timeLeft <= 30 ? 'bg-red-500 animate-ping' : 
+                      timeLeft <= 60 ? 'bg-yellow-500 animate-pulse' : 
                       'bg-green-500 animate-pulse'
                     }`}></div>
                     <span className={`text-sm font-bold transition-colors duration-300 ${
-                      timeLeft <= 2 ? 'text-red-600' : 
-                      timeLeft <= 3 ? 'text-yellow-600' : 
+                      timeLeft <= 30 ? 'text-red-600' : 
+                      timeLeft <= 60 ? 'text-yellow-600' : 
                       'text-green-600'
                     }`}>
-                      {timeLeft}s
+                      {formatTime(timeLeft)}
                     </span>
                   </div>
                   <div className="mt-1 bg-gray-200 rounded-full h-1 overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-1000 ease-linear ${
-                        timeLeft <= 2 ? 'bg-red-500' : 
-                        timeLeft <= 3 ? 'bg-yellow-500' : 
+                        timeLeft <= 30 ? 'bg-red-500' : 
+                        timeLeft <= 60 ? 'bg-yellow-500' : 
                         'bg-green-500'
                       }`}
-                      style={{ width: `${(timeLeft / 5) * 100}%` }}
+                      style={{ width: `${(timeLeft / 120) * 100}%` }}
                     ></div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          
-
-          
+            {/* QR Info */}
+            <div className="bg-blue-50 rounded-lg p-3 mb-4">
+              <div className="flex items-start space-x-2">
+                <svg className="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="text-xs text-blue-700">
+                  <p className="font-medium">QR Code Information:</p>
+                  <p>• Each QR code is valid for 2 minutes</p>
+                  <p>• New QR generated every 2 minutes</p>
+                  <p>• Students have plenty of time to scan</p>
+                </div>
+              </div>
+            </div>
 
             {/* Event Details */}
             {selectedEvent.time && (
-              <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-500">
+              <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
                 <div className="flex items-center space-x-1">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -267,7 +289,7 @@ export default function Page() {
           {/* Bottom accent */}
           <div className="h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-b-3xl"></div>
         </div>
-  
+      </div>
     );
   };
 
@@ -288,7 +310,7 @@ export default function Page() {
 
             {/* Add Event Button */}
             <Link
-              href="/events/add"
+              href="/events/Add"
               className="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white transition-all duration-300 ease-out bg-[#DD0F19] rounded-xl shadow-lg hover:shadow-xl hover:bg-[#b80d16] transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-[#DD0F19] focus:ring-offset-2"
             >
               <svg
@@ -352,7 +374,7 @@ export default function Page() {
                 Get started by creating your first event
               </p>
               <Link
-                href="/events/add"
+                href="/events/Add"
                 className="inline-flex items-center px-4 py-2 bg-[#DD0F19] text-white rounded-lg hover:bg-[#b80d16] transition-colors duration-200"
               >
                 Create Event
@@ -382,12 +404,6 @@ export default function Page() {
                           No Image
                         </div>
                       )}
-
-                      <div className="absolute top-3 right-3">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
-                   
-                        </div>
-                      </div>
                     </div>
 
                     {/* Card Content */}
@@ -447,9 +463,6 @@ export default function Page() {
                       <div className="pt-4 border-t border-[#8B8C8C]/20 flex items-center justify-between">
                         <div className="flex items-center justify-start gap-2">
                           <div className="flex space-x-2">
-                           
-                          
-
                             <Link
                               href={`/events/Edit/${evt.id}`}
                               className="inline-flex items-center justify-center w-8 h-8 bg-[#EC5914] hover:bg-[#d14f12] text-white rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#EC5914] focus:ring-offset-1"
@@ -467,20 +480,17 @@ export default function Page() {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-
-
-                              
                           </div>
                         </div>
-<div className="flex space-x-2">
-                        <button
-                              onClick={() => handleShowQR(evt)}
-                              className="inline-flex items-center justify-center w-9 h-9 bg-stone-700 hover:bg-stone-900 text-white rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-1"
-                              title="Show QR Code"
-                            >
-                              <QrCode className="w-4 h-4" />
-                            </button>
-</div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleShowQR(evt)}
+                            className="inline-flex items-center justify-center w-9 h-9 bg-stone-700 hover:bg-stone-900 text-white rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-1"
+                            title="Show QR Code"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
