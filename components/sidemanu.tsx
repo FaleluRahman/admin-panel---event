@@ -81,7 +81,7 @@ import { RiCalendarScheduleFill} from "react-icons/ri";
 import { HiMenuAlt3, HiX } from "react-icons/hi";
 import Image from "next/image";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { GrCafeteria } from "react-icons/gr";
 import { SiEclipseadoptium } from "react-icons/si";
 import { GiRolledCloth } from "react-icons/gi";
@@ -89,8 +89,16 @@ import { FaBookBookmark } from "react-icons/fa6";
 
 function SideMenu(active:any) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Redirect to events page if on root path
+  useEffect(() => {
+    if (pathname === '/') {
+      router.push('/events');
+    }
+  }, [pathname, router]);
 
   // Check if screen is mobile size
   useEffect(() => {
@@ -158,6 +166,9 @@ function SideMenu(active:any) {
     }
   };
 
+  // Helper function to check if current path matches the events page or root
+  const isEventsActive = pathname === '/events' || pathname === '/';
+
   return (
     <>
       {/* Mobile Menu Button - Only visible on mobile */}
@@ -193,7 +204,11 @@ function SideMenu(active:any) {
               <a 
                 href={item.link} 
                 key={index} 
-                className={`flex items-center gap-3 rounded-xl p-3 px-5 ${pathname == item.link ? "bg-zinc-800" : ""} hover:bg-zinc-800 transition-colors duration-200`}
+                className={`flex items-center gap-3 rounded-xl p-3 px-5 ${
+                  item.link === '/events' ? 
+                    (isEventsActive ? "bg-zinc-800" : "") : 
+                    (pathname === item.link ? "bg-zinc-800" : "")
+                } hover:bg-zinc-800 transition-colors duration-200`}
               >
                 <p className="text-xl">{item.icon}</p>
                 <p className="text-base text-white font-medium">{item.label}</p>
@@ -228,7 +243,11 @@ function SideMenu(active:any) {
                   href={item.link} 
                   key={index}
                   onClick={handleLinkClick}
-                  className={`flex items-center gap-3 rounded-xl p-4 px-5 ${pathname == item.link ? "bg-zinc-800" : ""} hover:bg-zinc-800 transition-colors duration-200`}
+                  className={`flex items-center gap-3 rounded-xl p-4 px-5 ${
+                    item.link === '/events' ? 
+                      (isEventsActive ? "bg-zinc-800" : "") : 
+                      (pathname === item.link ? "bg-zinc-800" : "")
+                  } hover:bg-zinc-800 transition-colors duration-200`}
                 >
                   <p className="text-xl">{item.icon}</p>
                   <p className="text-base text-white font-medium">{item.label}</p>
