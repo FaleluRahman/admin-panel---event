@@ -140,12 +140,7 @@ const QRModal = () => {
               </div>
             </div>
 
-            {/* QR Data Display */}
-            <div className="mt-4 text-center">
-              <div className="inline-flex items-center px-3 py-1 bg-gray-200 rounded-full text-xs font-mono text-gray-600">
-                event={selectedEvent.id}
-              </div>
-            </div>
+           
           </div>
 
           {/* Event Details */}
@@ -160,18 +155,13 @@ const QRModal = () => {
               {selectedEvent.type && (
                 <div className="flex items-center space-x-1">
                   <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                  <span>{selectedEvent.type} • {handleOption(selectedEvent.type)} pts</span>
+                  <span>{selectedEvent.type} • {handleOption(selectedEvent.type)} Points</span>
                 </div>
               )}
             </div>
           )}
 
-          {/* Instructions */}
-          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs text-blue-800 text-center">
-              <strong>How it works:</strong> Students scan this QR code to collect points for this event. Each student can only scan once per event.
-            </p>
-          </div>
+    
         </div>
 
         {/* Bottom accent */}
