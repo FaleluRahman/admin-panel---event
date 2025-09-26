@@ -36,13 +36,9 @@ export default function Page() {
 
     try {
       setLoading(true);
-
-      // Must pass ?id & api
       await AxiosInStance.delete(
         `/events/actions.php?id=${id}&api=b1daf1bbc7bbd214045af`
       );
-
-      // Optimistically remove event from UI
       setEvents((prev) => prev.filter((evt) => evt.id !== id));
     } catch (err) {
       console.error("Delete failed:", err);
@@ -58,217 +54,145 @@ export default function Page() {
     setShowQRModal(true);
   };
 
-  // QR Modal Component with Dynamic Regeneration
-  const QRModal = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [qrToken, setQrToken] = useState('');
-    const [timeLeft, setTimeLeft] = useState(5);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const countdownRef = useRef<NodeJS.Timeout | null>(null);
+const QRModal = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Generate unique token for QR code
-    const generateQRToken = () => {
-      const timestamp = Date.now();
-      const randomStr = Math.random().toString(36).substring(2, 15);
-      return `${timestamp}_${randomStr}`;
-    };
+  // Generate simple QR Code
+  const generateQRCode = async () => {
+    if (!canvasRef.current || !selectedEvent) {
+      return;
+    }
+    
+    try {
+      // Simple QR data format: event=123
+      const qrData = `event=${selectedEvent.id}`;
+      console.log("Generating QR with data:", qrData);
+      
+      // Generate visual QR code
+      await QRCode.toCanvas(canvasRef.current, qrData, {
+        width: 280,
+        margin: 3,
+        color: {
+          dark: '#1F2937',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
+      
+      console.log("QR Code generated successfully");
+    } catch (error) {
+      console.error('QR Code generation failed:', error);
+    }
+  };
 
-    // Generate QR Code with time-based security
-    const generateQRCode = async () => {
-      if (!canvasRef.current || !selectedEvent) return;
-      
-      setIsGenerating(true);
-      const newToken = generateQRToken();
-      setQrToken(newToken);
-      
-   
-      const timestamp = Math.floor(Date.now() / 1000); 
-      const qrData = `event=${selectedEvent.id}&t=${timestamp}`;
-      
-      const color = [
-        { dark: '#1F2937', light: '#FFFFFF' }, 
-  
-      ];
-      
-      const colorIndex = Math.floor(Date.now() / 5000) % color.length;
-      const selectedColors = color[colorIndex];
-      
-      try {
-        await QRCode.toCanvas(canvasRef.current, qrData, {
-          width: 280,
-          margin: 3,
-          color: selectedColors,
-          errorCorrectionLevel: 'M'
-        });
-      } catch (err) {
-        console.error('QR Code generation failed:', err);
-      } finally {
-        setIsGenerating(false);
-      }
-    };
+  useEffect(() => {
+    if (showQRModal && selectedEvent) {
+      console.log('QR Modal opened for event:', selectedEvent);
+      generateQRCode();
+    }
+  }, [showQRModal, selectedEvent]);
 
-    const startCountdown = () => {
-      setTimeLeft(5);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      
-      countdownRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            return 5;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    };
+  const handleCloseModal = () => {
+    console.log('Closing QR modal...');
+    setShowQRModal(false);
+    setSelectedEvent(null);
+  };
 
-   
-    useEffect(() => {
-      if (showQRModal && selectedEvent) {
-        generateQRCode();
-        startCountdown();
+  if (!showQRModal || !selectedEvent) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-sm sm:max-w-md shadow-2xl relative overflow-hidden">
+        {/* Close Button */}
+        <button
+          onClick={handleCloseModal}
+          className="absolute top-4 right-4 z-10 w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105"
+        >
+         <CircleX className="w-5 h-5 text-white" />
+        </button>
+
+        {/* Top accent gradient */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-t-3xl"></div>
         
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(() => {
-          generateQRCode();
-        }, 5000);
-      }
-
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (countdownRef.current) clearInterval(countdownRef.current);
-      };
-    }, [showQRModal, selectedEvent]);
-
-    // Cleanup on unmount or modal close
-    const handleCloseModal = () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (countdownRef.current) clearInterval(countdownRef.current);
-      setShowQRModal(false);
-      setSelectedEvent(null);
-      setQrToken('');
-    };
-
-    if (!showQRModal || !selectedEvent) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl w-full max-w-sm sm:max-w-md shadow-2xl relative overflow-hidden">
-          {/* Close Button */}
-          <button
-            onClick={handleCloseModal}
-            className="absolute top-4 right-4 z-10 w-10 h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105"
-          >
-           <CircleX />
-          </button>
-
-          {/* Top accent gradient */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-t-3xl"></div>
-          
-          {/* Header */}
-          <div className="px-6 pt-8 pb-4">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#DD0F19] to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <QrCode className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-                {selectedEvent.title}
-              </h2>
-              <p className="text-gray-500 text-sm">Scan the QR code to collect points</p>
+        {/* Header */}
+        <div className="px-6 pt-8 pb-4">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#DD0F19] to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <QrCode className="w-8 h-8 text-white" />
             </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+              {selectedEvent.title}
+            </h2>
+            <p className="text-sm text-gray-600">
+              Simple QR Code - One Event, One Code
+            </p>
           </div>
-
-          {/* QR Code Container */}
-          <div className="px-6 pb-4">
-            <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-4">
-              {/* QR Code */}
-              <div className="relative flex justify-center">
-                <div className="relative p-4 bg-white rounded-xl shadow-lg transition-all duration-500 hover:shadow-xl">
-                  <canvas 
-                    ref={canvasRef}
-                    className="max-w-full h-auto block transition-all duration-500"
-                  />
-                  
-                  {/* Loading Overlay with pulse effect */}
-                  {isGenerating && (
-                    <div className="absolute inset-0 bg-white/90 flex items-center justify-center rounded-xl">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-[#DD0F19] rounded-full animate-bounce"></div>
-                        <div className="w-3 h-3 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-3 h-3 bg-[#EC5914] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Refresh indicator */}
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md animate-pulse">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Countdown Timer with animation */}
-              <div className="absolute top-3 right-3">
-                <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-gray-200">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      timeLeft <= 2 ? 'bg-red-500 animate-ping' : 
-                      timeLeft <= 3 ? 'bg-yellow-500 animate-pulse' : 
-                      'bg-green-500 animate-pulse'
-                    }`}></div>
-                    <span className={`text-sm font-bold transition-colors duration-300 ${
-                      timeLeft <= 2 ? 'text-red-600' : 
-                      timeLeft <= 3 ? 'text-yellow-600' : 
-                      'text-green-600'
-                    }`}>
-                      {timeLeft}s
-                    </span>
-                  </div>
-                  <div className="mt-1 bg-gray-200 rounded-full h-1 overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-1000 ease-linear ${
-                        timeLeft <= 2 ? 'bg-red-500' : 
-                        timeLeft <= 3 ? 'bg-yellow-500' : 
-                        'bg-green-500'
-                      }`}
-                      style={{ width: `${(timeLeft / 5) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-
-          
-
-            {/* Event Details */}
-            {selectedEvent.time && (
-              <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>{selectedEvent.time}</span>
-                </div>
-                {selectedEvent.type && (
-                  <div className="flex items-center space-x-1">
-                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                    <span>{selectedEvent.type}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Bottom accent */}
-          <div className="h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-b-3xl"></div>
         </div>
-  
-    );
+
+        {/* QR Code Container */}
+        <div className="px-6 pb-4">
+          <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-4">
+            {/* QR Code */}
+            <div className="relative flex justify-center">
+              <div className="relative p-4 bg-white rounded-xl shadow-lg transition-all duration-500 hover:shadow-xl">
+                <canvas 
+                  ref={canvasRef}
+                  className="max-w-full h-auto block transition-all duration-500"
+                />
+              </div>
+            </div>
+
+            {/* QR Data Display */}
+            <div className="mt-4 text-center">
+              <div className="inline-flex items-center px-3 py-1 bg-gray-200 rounded-full text-xs font-mono text-gray-600">
+                event={selectedEvent.id}
+              </div>
+            </div>
+          </div>
+
+          {/* Event Details */}
+          {selectedEvent.time && (
+            <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
+              <div className="flex items-center space-x-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{selectedEvent.time}</span>
+              </div>
+              {selectedEvent.type && (
+                <div className="flex items-center space-x-1">
+                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                  <span>{selectedEvent.type} • {handleOption(selectedEvent.type)} pts</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-blue-800 text-center">
+              <strong>How it works:</strong> Students scan this QR code to collect points for this event. Each student can only scan once per event.
+            </p>
+          </div>
+        </div>
+
+        {/* Bottom accent */}
+        <div className="h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-b-3xl"></div>
+      </div>
+    </div>
+  );
+};
+
+  // Helper function to get points (same as PHP)
+  const handleOption = (value: string): number => {
+    const pointsMap: { [key: string]: number } = {
+      "Expert Convos": 14,
+      "Edu Login": 14,
+      "WriteWell Clinic": 10,
+      "Pro Chat": 6,
+      "Tranquil Wellness Hub": 10,
+    };
+    return pointsMap[value] || 0;
   };
 
   return (
@@ -282,13 +206,13 @@ export default function Page() {
                 Event Management
               </h1>
               <p className="text-[#8B8C8C] text-sm sm:text-base">
-                Manage and organize your events efficiently
+                Simple QR code generation - one event, one QR code
               </p>
             </div>
 
             {/* Add Event Button */}
             <Link
-              href="/events/add"
+              href="/events/Add"
               className="group relative inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white transition-all duration-300 ease-out bg-[#DD0F19] rounded-xl shadow-lg hover:shadow-xl hover:bg-[#b80d16] transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-[#DD0F19] focus:ring-offset-2"
             >
               <svg
@@ -305,7 +229,6 @@ export default function Page() {
                 />
               </svg>
               Add New Event
-              <div className="absolute inset-0 rounded-xl bg-[#DD0F19] opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
             </Link>
           </div>
 
@@ -352,7 +275,7 @@ export default function Page() {
                 Get started by creating your first event
               </p>
               <Link
-                href="/events/add"
+                href="/events/Add"
                 className="inline-flex items-center px-4 py-2 bg-[#DD0F19] text-white rounded-lg hover:bg-[#b80d16] transition-colors duration-200"
               >
                 Create Event
@@ -382,12 +305,6 @@ export default function Page() {
                           No Image
                         </div>
                       )}
-
-                      <div className="absolute top-3 right-3">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
-                   
-                        </div>
-                      </div>
                     </div>
 
                     {/* Card Content */}
@@ -447,9 +364,6 @@ export default function Page() {
                       <div className="pt-4 border-t border-[#8B8C8C]/20 flex items-center justify-between">
                         <div className="flex items-center justify-start gap-2">
                           <div className="flex space-x-2">
-                           
-                          
-
                             <Link
                               href={`/events/Edit/${evt.id}`}
                               className="inline-flex items-center justify-center w-8 h-8 bg-[#EC5914] hover:bg-[#d14f12] text-white rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#EC5914] focus:ring-offset-1"
@@ -467,20 +381,17 @@ export default function Page() {
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
-
-
-                              
                           </div>
                         </div>
-<div className="flex space-x-2">
-                        <button
-                              onClick={() => handleShowQR(evt)}
-                              className="inline-flex items-center justify-center w-9 h-9 bg-stone-700 hover:bg-stone-900 text-white rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-1"
-                              title="Show QR Code"
-                            >
-                              <QrCode className="w-4 h-4" />
-                            </button>
-</div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleShowQR(evt)}
+                            className="inline-flex items-center justify-center w-9 h-9 bg-stone-700 hover:bg-stone-900 text-white rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-stone-600 focus:ring-offset-1"
+                            title="Show QR Code"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
