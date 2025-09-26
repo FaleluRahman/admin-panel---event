@@ -123,9 +123,7 @@ const QRModal = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
               {selectedEvent.title}
             </h2>
-            <p className="text-sm text-gray-600">
-              Simple QR Code - One Event, One Code
-            </p>
+           
           </div>
         </div>
 
@@ -206,7 +204,7 @@ const QRModal = () => {
                 Event Management
               </h1>
               <p className="text-[#8B8C8C] text-sm sm:text-base">
-                Simple QR code generation - one event, one QR code
+                Manage events of Rendezvous Silver Edition
               </p>
             </div>
 
