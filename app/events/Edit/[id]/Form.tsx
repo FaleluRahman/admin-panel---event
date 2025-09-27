@@ -304,7 +304,7 @@ function Form() {
 
           {/* ---- Form ---- */}
           <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-2xl p-8 border border-white/50 transition-all duration-500 hover:shadow-3xl hover:scale-105 animate-slide-up">
-            <div onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* ---- Image Upload ---- */}
               <div className="space-y-2 animate-fade-in delay-300">
                 <label className="block text-sm font-semibold text-gray-700">Event Image</label>
@@ -515,8 +515,7 @@ function Form() {
                   className={`group relative w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-xl text-white font-semibold text-lg transition-all duration-300 transform ${
                     isLoading ? "bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed scale-95"
                     : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 hover:scale-105 shadow-lg hover:shadow-xl"
-                  }`}
-                  onClick={handleSubmit}>
+                  }`}>
                   {isLoading ? (
                     <span className="flex items-center">
                       <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -532,7 +531,7 @@ function Form() {
                   Cancel
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       </div>
