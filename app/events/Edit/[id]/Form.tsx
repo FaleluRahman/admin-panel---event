@@ -3,13 +3,14 @@
 import { AxiosInStance } from "@/lib/axios";
 import { useRouter, useParams } from "next/navigation";
 import React, { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { Upload, X, Image } from "lucide-react";
 
 interface FormData {
   title: string;
   place: string;
   time: string;
   type: string;
+  description: string;
   image: File | null;
 }
 
@@ -18,6 +19,7 @@ interface Errors {
   place?: string;
   time?: string;
   type?: string;
+  description?: string;
   image?: string;
 }
 
@@ -33,6 +35,7 @@ function Form() {
     place: "",
     time: "",
     type: "",
+    description: "",
     image: null,
   });
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -103,6 +106,7 @@ function Form() {
             place: eventData.place || "",
             time: eventData.time || "",
             type: eventData.type || "",
+            description: eventData.description || "",
             image: null,
           });
           
@@ -129,7 +133,7 @@ function Form() {
     loadEventData();
   }, [eventId, router]);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name as keyof Errors]) {
@@ -204,6 +208,7 @@ function Form() {
     if (!formData.place.trim()) newErrors.place = "Location is required";
     if (!formData.time) newErrors.time = "Time is required";
     if (!formData.type) newErrors.type = "Event type is required";
+    // Description is optional, so no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -220,6 +225,7 @@ function Form() {
       submitData.append('place', formData.place);
       submitData.append('time', formData.time); // This will now be in "10:00AM" format
       submitData.append('type', formData.type);
+      submitData.append('description', formData.description); // Add description to form data
       if (formData.image) submitData.append('image', formData.image);
       submitData.append('_method', 'PUT'); // tell backend this is an update
 
@@ -298,7 +304,7 @@ function Form() {
 
           {/* ---- Form ---- */}
           <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-2xl p-8 border border-white/50 transition-all duration-500 hover:shadow-3xl hover:scale-105 animate-slide-up">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div onSubmit={handleSubmit} className="space-y-6">
               {/* ---- Image Upload ---- */}
               <div className="space-y-2 animate-fade-in delay-300">
                 <label className="block text-sm font-semibold text-gray-700">Event Image</label>
@@ -327,7 +333,7 @@ function Form() {
                         <X className="w-4 h-4" />
                       </button>
                       <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm">
-                        <ImageIcon className="w-4 h-4 inline mr-1" />
+                        <Image className="w-4 h-4 inline mr-1" />
                         {formData.image?.name || "Current Image"}
                       </div>
                     </div>
@@ -464,13 +470,53 @@ function Form() {
                 {errors.type && (<p className="text-red-500 text-xs animate-shake">{errors.type}</p>)}
               </div>
 
+              {/* ---- Description Field - New Optional Field ---- */}
+              <div className="space-y-2 animate-fade-in delay-750">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-semibold text-gray-700"
+                >
+                  Description
+                  <span className="text-gray-400 font-normal text-xs ml-1">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <textarea
+                    name="description"
+                    id="description"
+                    rows={4}
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    onFocus={() => setFocusedField("description")}
+                    onBlur={() => setFocusedField("")}
+                    className={`w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 transition-all duration-300 transform resize-none ${
+                      focusedField === "description"
+                        ? "border-teal-400 ring-4 ring-teal-100 scale-105 shadow-lg"
+                        : "border-gray-300 hover:border-gray-400"
+                    } ${errors.description ? "border-red-400 ring-red-100" : ""} 
+                    focus:outline-none bg-white/70 backdrop-blur-sm`}
+                    placeholder="Provide additional details about your event (optional)"
+                  />
+                </div>
+                {formData.description.length > 0 && (
+                  <div className="text-xs text-gray-500 text-right">
+                    {formData.description.length} characters
+                  </div>
+                )}
+                {errors.description && (
+                  <p className="text-red-500 text-xs animate-shake">
+                    {errors.description}
+                  </p>
+                )}
+              </div>
+
               {/* ---- Buttons ---- */}
               <div className="pt-6 space-y-3 animate-fade-in delay-800">
                 <button type="submit" disabled={isLoading}
                   className={`group relative w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-xl text-white font-semibold text-lg transition-all duration-300 transform ${
                     isLoading ? "bg-gradient-to-r from-gray-400 to-gray-500 cursor-not-allowed scale-95"
                     : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 hover:scale-105 shadow-lg hover:shadow-xl"
-                  }`}>
+                  }`}
+                  onClick={handleSubmit}>
                   {isLoading ? (
                     <span className="flex items-center">
                       <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -486,7 +532,7 @@ function Form() {
                   Cancel
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       </div>

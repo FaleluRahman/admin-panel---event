@@ -54,6 +54,12 @@ export default function Page() {
     setShowQRModal(true);
   };
 
+  // Helper function to truncate description
+  const truncateDescription = (text: string, maxLength: number = 80) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + "...";
+  };
+
 const QRModal = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -123,7 +129,12 @@ const QRModal = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
               {selectedEvent.title}
             </h2>
-           
+            {/* Display description in QR modal */}
+            {selectedEvent.description && (
+              <p className="text-xs text-gray-600 px-2 leading-relaxed">
+                {selectedEvent.description}
+              </p>
+            )}
           </div>
         </div>
 
@@ -139,8 +150,6 @@ const QRModal = () => {
                 />
               </div>
             </div>
-
-           
           </div>
 
           {/* Event Details */}
@@ -160,8 +169,6 @@ const QRModal = () => {
               )}
             </div>
           )}
-
-    
         </div>
 
         {/* Bottom accent */}
@@ -306,8 +313,32 @@ const QRModal = () => {
                         </Link>
                       </div>
 
+                      {/* Description - Added here with small font */}
+                      {evt.description && (
+                        <div className="mb-3">
+                          <p className="text-xs text-[#8B8C8C] leading-relaxed">
+                            {truncateDescription(evt.description)}
+                          </p>
+                        </div>
+                      )}
+
                       {/* Event Details */}
                       <div className="space-y-3">
+                        {/* Location */}
+                        {evt.place && (
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0 w-8 h-8 bg-[#EEFBOE] border border-[#8B8C8C]/20 rounded-lg flex items-center justify-center">
+                              <svg className="w-4 h-4 text-[#DD0F19]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-[#000000]">{evt.place}</p>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Time */}
                         <div className="flex items-center space-x-3">
                           <div className="flex-shrink-0 w-8 h-8 bg-[#EEFBOE] border border-[#8B8C8C]/20 rounded-lg flex items-center justify-center">
@@ -316,7 +347,6 @@ const QRModal = () => {
                             </svg>
                           </div>
                           <div>
-                            <p className="text-xs text-[#8B8C8C] uppercase tracking-wide">Time</p>
                             <p className="text-sm font-medium text-[#000000]">{evt.time || 'Not specified'}</p>
                           </div>
                         </div>
@@ -339,9 +369,7 @@ const QRModal = () => {
                             </svg>
                           </div>
                           <div>
-                            <p className="text-xs text-[#8B8C8C] uppercase tracking-wide">
-                              Type
-                            </p>
+                           
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#EC5914]/10 text-[#EC5914] border border-[#EC5914]/20">
                               {evt.type || "General"}
                             </span>
