@@ -3,13 +3,14 @@
 import { AxiosInStance } from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import React, { useState, ChangeEvent, FormEvent } from "react";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { Upload, X, Image } from "lucide-react";
 
 interface FormData {
   title: string;
   place: string;
   time: string;
   type: string;
+  description: string;
   image: File | null;
 }
 
@@ -18,6 +19,7 @@ interface Errors {
   place?: string;
   time?: string;
   type?: string;
+  description?: string;
   image?: string;
 }
 
@@ -29,6 +31,7 @@ function Form() {
     place: "",
     time: "",
     type: "",
+    description: "",
     image: null,
   });
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -52,7 +55,7 @@ function Form() {
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name as keyof Errors]) {
@@ -130,6 +133,7 @@ function Form() {
     if (!formData.place.trim()) newErrors.place = "Location is required";
     if (!formData.time) newErrors.time = "Time is required";
     if (!formData.type) newErrors.type = "Event type is required";
+    // Description is optional, so no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -148,6 +152,7 @@ function Form() {
       submitData.append('place', formData.place);
       submitData.append('time', formData.time); // This will now be in "10:00AM" format
       submitData.append('type', formData.type);
+      submitData.append('description', formData.description); // Add description to form data
       
       if (formData.image) {
         submitData.append('image', formData.image);
@@ -334,7 +339,7 @@ function Form() {
                         <X className="w-4 h-4" />
                       </button>
                       <div className="absolute bottom-2 left-2 bg-black/50 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm">
-                        <ImageIcon className="w-4 h-4 inline mr-1" />
+                        <Image className="w-4 h-4 inline mr-1" />
                         {formData.image?.name}
                       </div>
                     </div>
@@ -541,8 +546,47 @@ function Form() {
                 )}
               </div>
 
+              {/* Description Field - New Optional Field */}
+              <div className="space-y-2 animate-fade-in delay-800">
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-semibold text-gray-700"
+                >
+                  Description
+                  <span className="text-gray-400 font-normal text-xs ml-1">(Optional)</span>
+                </label>
+                <div className="relative">
+                  <textarea
+                    name="description"
+                    id="description"
+                    rows={4}
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    onFocus={() => setFocusedField("description")}
+                    onBlur={() => setFocusedField("")}
+                    className={`w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 transition-all duration-300 transform resize-none ${
+                      focusedField === "description"
+                        ? "border-teal-400 ring-4 ring-teal-100 scale-105 shadow-lg"
+                        : "border-gray-300 hover:border-gray-400"
+                    } ${errors.description ? "border-red-400 ring-red-100" : ""} 
+                    focus:outline-none bg-white/70 backdrop-blur-sm`}
+                    placeholder="Provide additional details about your event (optional)"
+                  />
+                </div>
+                {formData.description.length > 0 && (
+                  <div className="text-xs text-gray-500 text-right">
+                    {formData.description.length} characters
+                  </div>
+                )}
+                {errors.description && (
+                  <p className="text-red-500 text-xs animate-shake">
+                    {errors.description}
+                  </p>
+                )}
+              </div>
+
               {/* Submit Button */}
-              <div className="pt-6 animate-fade-in delay-800">
+              <div className="pt-6 animate-fade-in delay-900">
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -583,7 +627,7 @@ function Form() {
           </div>
 
           {/* Footer */}
-          <div className="text-center animate-fade-in delay-900">
+          <div className="text-center animate-fade-in delay-1000">
             <p className="text-sm text-gray-500 flex items-center justify-center">
               <svg
                 className="w-4 h-4 mr-2"
