@@ -537,13 +537,28 @@ function Form() {
       </div>
 
       {/* ---- Success Animation ---- */}
-      <div id="success-animation" className="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-        <div className="bg-white rounded-2xl p-8 text-center animate-fade-in-up shadow-2xl">
-          <svg className="w-16 h-16 mx-auto text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-          </svg>
-          <h2 className="text-2xl font-bold mb-2">Event Updated!</h2>
-          <p className="text-gray-600">Your event has been successfully updated.</p>
+      <div
+        id="success-animation"
+        className="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      >
+        <div className="bg-white rounded-2xl p-8 text-center animate-bounce">
+          <div className="text-green-500 mb-4">
+            <svg
+              className="w-16 h-16 mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-green-600 mb-2">Success!</h2>
+          <p className="text-gray-600">Event updated successfully!</p>
         </div>
       </div>
     </div>

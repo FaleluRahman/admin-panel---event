@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import { AxiosInStance } from "@/lib/axios";
 import Link from "next/link";
-import { ChevronsRight, SquarePen, Trash2, QrCode, CircleX } from 'lucide-react';
+import { ChevronsRight, SquarePen, Trash2, QrCode, CircleX, ImageOff } from 'lucide-react';
 import QRCode from 'qrcode';
 
 export default function Page() {
@@ -13,6 +13,7 @@ export default function Page() {
   const [dateString, setDateString] = useState("");
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
 
   const fetchEvents = async () => {
     try {
@@ -29,6 +30,11 @@ export default function Page() {
     fetchEvents();
     setDateString(new Date().toLocaleDateString());
   }, []);
+
+  // Handle image load errors
+  const handleImageError = (eventId: number) => {
+    setImageErrors(prev => new Set(prev).add(eventId));
+  };
 
   // Delete event function
   const handleDelete = async (id: number) => {
@@ -129,12 +135,7 @@ const QRModal = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
               {selectedEvent.title}
             </h2>
-            {/* Display description in QR modal */}
-            {selectedEvent.description && (
-              <p className="text-xs text-gray-600 px-2 leading-relaxed">
-                {selectedEvent.description}
-              </p>
-            )}
+           
           </div>
         </div>
 
@@ -284,20 +285,21 @@ const QRModal = () => {
                   className="group block transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
                 >
                   <div className="relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-[#8B8C8C]/20">
-                    {/* Image Section */}
+                    {/* Image Section - Fixed */}
                     <div className="h-32 bg-[#000000] relative overflow-hidden">
-                      {evt.image ? (
+                      {evt.image && !imageErrors.has(evt.id) ? (
                         <img
                           src={`${AxiosInStance.defaults.baseURL}/${evt.image}`}
                           alt={evt.title || "Event"}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = "/no-image.png";
-                          }}
+                          onError={() => handleImageError(evt.id)}
                         />
                       ) : (
-                        <div className="flex items-center justify-center w-full h-full bg-[#000000] text-white text-sm">
-                          No Image
+                        <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500">
+                          <div className="text-center">
+                            <ImageOff className="w-8 h-8 mx-auto mb-1 text-gray-400" />
+                            <span className="text-xs">No Image</span>
+                          </div>
                         </div>
                       )}
                     </div>
