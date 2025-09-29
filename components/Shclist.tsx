@@ -469,7 +469,7 @@ const categories = ["general", "senior", "junior", "subjunior", "premier", "mino
 const stages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const Shclist = () => {
-  const [date, setDate] = useState("Oct-03 Friday");
+  const [date, setDate] = useState("Oct-02 Thursday");
   const [stage, setStage] = useState(1);
   const [schedule, setSchedule] = useState([]);
   const [addschedule, setAddschedule] = useState(false);
@@ -479,6 +479,8 @@ const Shclist = () => {
 
   const getDate = (dateStr) => {
     switch (dateStr) {
+      case "Oct-02 Thursday":
+        return "2025-10-02";
       case "Oct-03 Friday":
         return "2025-10-03";
       case "Oct-04 Saturday":
@@ -808,7 +810,7 @@ const Shclist = () => {
 
         {/* Date Selection */}
         <div className="flex gap-6 w-full mb-6 justify-center text-center">
-          {["Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
+          {["Oct-02 Thursday","Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
             <div
               onClick={() => setDate(item)}
               key={item}
