@@ -586,6 +586,7 @@ import { MdOutlineAddCircle, MdDelete, MdWarning, MdCheckCircle } from "react-ic
 import AddSchedule from "./Addschedule";
 import { AxiosInStance } from "@/lib/axios";
 import { programs } from "@/data/programs";
+export const dynamic = "force-dynamic";
 
 const categories = ["general", "senior", "junior", "subJunior", "premier", "minor", "break"];
 const stages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];

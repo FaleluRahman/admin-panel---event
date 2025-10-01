@@ -4,7 +4,7 @@ import { AxiosInStance } from "@/lib/axios";
 import axios from "axios";
 import { ReceiptIndianRupee, RectangleGoggles } from "lucide-react";
 import React from "react";
-const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 async function page() {
   const res = await AxiosInStance.get(
