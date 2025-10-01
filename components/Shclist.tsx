@@ -587,7 +587,7 @@ import AddSchedule from "./Addschedule";
 import { AxiosInStance } from "@/lib/axios";
 import { programs } from "@/data/programs";
 
-const categories = ["general", "senior", "junior", "subjunior", "premier", "minor", "break"];
+const categories = ["general", "senior", "junior", "subJunior", "premier", "minor", "break"];
 const stages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const Shclist = () => {
