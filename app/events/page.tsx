@@ -434,7 +434,7 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import { AxiosInStance } from "@/lib/axios";
 import Link from "next/link";
 import { SquarePen, Trash2, CircleX, ImageOff, ScanLine } from "lucide-react";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import { Scanner ,IDetectedBarcode} from "@yudiel/react-qr-scanner";
 
 type EventType = {
   id: number;
@@ -579,7 +579,7 @@ export default function Page() {
 
               <div className="relative bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden mb-4 shadow-xl">
                 <Scanner
-                  onScan={(detectedCodes: DetectedBarcode[]) => {
+                  onScan={(detectedCodes: IDetectedBarcode[]) => {
                     if (!isProcessing && detectedCodes && detectedCodes.length > 0) {
                       let jamiaId = detectedCodes[0]?.rawValue || "";
                       jamiaId = jamiaId.trim().toUpperCase();
