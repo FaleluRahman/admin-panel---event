@@ -428,31 +428,39 @@
 //   );
 // }
 
-"use client";
-
+"use client"
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import { AxiosInStance } from "@/lib/axios";
 import Link from "next/link";
-import { SquarePen, Trash2, CircleX, ImageOff, ScanLine } from 'lucide-react';
+import { SquarePen, Trash2, CircleX, ImageOff, ScanLine } from "lucide-react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
+type EventType = {
+  id: number;
+  title?: string;
+  description?: string;
+  image?: string;
+  place?: string;
+  time?: string;
+  type?: string;
+};
+
 export default function Page() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(false);
   const [dateString, setDateString] = useState("");
   const [showScanModal, setShowScanModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [scanStatus, setScanStatus] = useState<"scanning" | "success" | "error">("scanning");
   const [scanMessage, setScanMessage] = useState("");
   const [scanLoading, setScanLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchEvents = async () => {
     try {
-      const res = await AxiosInStance.get(
-        "/events/actions.php?api=b1daf1bbc7bbd214045af"
-      );
+      const res = await AxiosInStance.get("/events/actions.php?api=b1daf1bbc7bbd214045af");
       setEvents(res?.data?.data || []);
     } catch (err) {
       console.error(err);
@@ -465,7 +473,7 @@ export default function Page() {
   }, []);
 
   const handleImageError = (eventId: number) => {
-    setImageErrors(prev => new Set(prev).add(eventId));
+    setImageErrors((prev) => new Set(prev).add(eventId));
   };
 
   const handleDelete = async (id: number) => {
@@ -473,9 +481,7 @@ export default function Page() {
 
     try {
       setLoading(true);
-      await AxiosInStance.delete(
-        `/events/actions.php?id=${id}&api=b1daf1bbc7bbd214045af`
-      );
+      await AxiosInStance.delete(`/events/actions.php?id=${id}&api=b1daf1bbc7bbd214045af`);
       setEvents((prev) => prev.filter((evt) => evt.id !== id));
     } catch (err) {
       console.error("Delete failed:", err);
@@ -485,11 +491,12 @@ export default function Page() {
     }
   };
 
-  const handleShowScanner = (event: any) => {
+  const handleShowScanner = (event: EventType) => {
     setSelectedEvent(event);
     setShowScanModal(true);
     setScanStatus("scanning");
     setScanMessage("");
+    setIsProcessing(false);
   };
 
   const truncateDescription = (text: string, maxLength: number = 80) => {
@@ -497,148 +504,134 @@ export default function Page() {
     return text.substring(0, maxLength) + "...";
   };
 
-  // Scanner Modal for Admin to scan Student QR
-  const ScannerModal = () => {
-    const handleScan = async (jamiaId: string) => {
-      if (!selectedEvent || !jamiaId) return;
+  const handleScan = async (jamiaId: string) => {
+    if (isProcessing || !selectedEvent || !jamiaId) return;
 
-      try {
-        setScanLoading(true);
-        
-        const response = await AxiosInStance.get(
-          `/qrscans/actions.php?api=b1daf1bbc7bbd214045af&event=${selectedEvent.id}&student=${jamiaId}`
+    try {
+      setIsProcessing(true);
+      setScanLoading(true);
+
+      const response = await AxiosInStance.get(
+        `/qrscans/actions.php?api=b1daf1bbc7bbd214045af&event=${selectedEvent.id}&student=${jamiaId}`
+      );
+
+      if (response.data && response.data.success === true) {
+        setScanStatus("success");
+        setScanMessage(
+          `Success! ${jamiaId} earned ${response.data.points} points for ${selectedEvent.title}`
         );
-
-        if (response.data && response.data.success === true) {
-          setScanStatus("success");
-          setScanMessage(`Success! ${jamiaId} earned ${response.data.points} points for ${selectedEvent.title}`);
-          setTimeout(() => {
-            setShowScanModal(false);
-            setScanStatus("scanning");
-          }, 2500);
-        } else {
-          throw new Error(response.data?.message || "Failed to award points");
-        }
-      } catch (error: any) {
-        console.error("Scan Error:", error);
-        setScanStatus("error");
-        setScanMessage(error?.response?.data?.message || error?.message || "Failed to process scan");
         setTimeout(() => {
+          setShowScanModal(false);
           setScanStatus("scanning");
           setScanMessage("");
-        }, 3000);
-      } finally {
-        setScanLoading(false);
+          setIsProcessing(false);
+        }, 2500);
+      } else {
+        throw new Error(response.data?.message || "Failed to award points");
       }
-    };
+    } catch (error: any) {
+      console.error("Scan Error:", error);
+      setScanStatus("error");
+      const errorMsg =
+        error?.response?.data?.message || error?.message || "Failed to process scan";
+      setScanMessage(errorMsg);
+      setTimeout(() => {
+        setScanStatus("scanning");
+        setScanMessage("");
+        setIsProcessing(false);
+      }, 3000);
+    } finally {
+      setScanLoading(false);
+    }
+  };
 
+  const ScannerModal = () => {
     if (!showScanModal || !selectedEvent) return null;
 
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
         <div className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl relative overflow-hidden max-h-[95vh] flex flex-col">
           <button
-            onClick={() => setShowScanModal(false)}
+            onClick={() => {
+              setShowScanModal(false);
+              setScanStatus("scanning");
+              setScanMessage("");
+              setIsProcessing(false);
+              setScanLoading(false);
+            }}
             className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-9 h-9 sm:w-10 sm:h-10 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 shadow-lg"
           >
             <CircleX className="w-5 h-5 text-white" />
           </button>
 
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-t-2xl sm:rounded-t-3xl"></div>
-
+          {/* Scanner */}
           {scanStatus === "scanning" ? (
             <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
               <div className="text-center mb-4">
                 <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-br from-[#DD0F19] to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg">
                   <ScanLine className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-                  Scan Student QR
-                </h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Scan Student QR</h2>
                 <p className="text-xs sm:text-sm text-gray-600 px-2">
-                <span className="font-semibold">{selectedEvent.title}</span>
+                  <span className="font-semibold">{selectedEvent.title}</span>
                 </p>
               </div>
 
               <div className="relative bg-gray-900 rounded-xl sm:rounded-2xl overflow-hidden mb-4 shadow-xl">
                 <Scanner
-                  onScan={(result) => {
-                    if (result?.[0]?.rawValue) {
-                      const jamiaId = result[0].rawValue.trim();
-                      console.log("Scanned Jamia ID:", jamiaId);
-                      handleScan(jamiaId);
+                  onScan={(detectedCodes: DetectedBarcode[]) => {
+                    if (!isProcessing && detectedCodes && detectedCodes.length > 0) {
+                      let jamiaId = detectedCodes[0]?.rawValue || "";
+                      jamiaId = jamiaId.trim().toUpperCase();
+
+                      const jamiaIdPattern = /^\d{4}[A-Z]{2,3}\d{3,4}$/;
+                      if (jamiaId && jamiaIdPattern.test(jamiaId)) {
+                        handleScan(jamiaId);
+                      } else if (jamiaId) {
+                        setScanStatus("error");
+                        setScanMessage(
+                          `Invalid Jamia ID format: ${jamiaId}. Expected format: 2019ABC123`
+                        );
+                        setTimeout(() => {
+                          setScanStatus("scanning");
+                          setScanMessage("");
+                        }, 3000);
+                      }
                     }
                   }}
                   onError={(error) => {
-                    console.error("Scanner Error:", error);
-                    setScanStatus("error");
-                    setScanMessage("Camera access failed. Please allow camera permissions.");
-                  }}
-                  constraints={{
-                    facingMode: "environment",
-                    aspectRatio: 1
-                  }}
-                  styles={{
-                    container: { 
-                      width: "100%", 
-                      position: "relative",
-                      paddingBottom: "100%",
-                      overflow: "hidden"
-                    },
-                    video: { 
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%", 
-                      height: "100%", 
-                      objectFit: "cover",
-                      borderRadius: "12px"
+                    if (!isProcessing) {
+                      setScanStatus("error");
+                      setScanMessage("Camera access failed. Please allow camera permissions.");
+                      setTimeout(() => {
+                        setScanStatus("scanning");
+                        setScanMessage("");
+                      }, 3000);
                     }
                   }}
-                  components={{
-                    finder: true
-                  }}
+                  constraints={{ facingMode: "environment", aspectRatio: 1 }}
+                  scanDelay={500}
                 />
               </div>
-
-            
-
-              {scanLoading && (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#DD0F19] mx-auto"></div>
-                  <p className="text-sm sm:text-base text-gray-600 mt-3 font-medium">Processing scan...</p>
-                </div>
-              )}
             </div>
           ) : (
             <div className="p-6 sm:p-8 text-center flex-1 flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center mb-4 sm:mb-6">
-                {scanStatus === "success" ? (
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="w-8 h-8 sm:w-10 sm:h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </div>
-                )}
-              </div>
-
-              <h3 className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 ${scanStatus === "success" ? "text-green-800" : "text-red-800"}`}>
+              <h3
+                className={`text-lg sm:text-xl font-bold mb-2 sm:mb-3 ${
+                  scanStatus === "success" ? "text-green-800" : "text-red-800"
+                }`}
+              >
                 {scanStatus === "success" ? "Scan Successful!" : "Scan Failed"}
               </h3>
-
-              <p className={`text-sm sm:text-base px-4 ${scanStatus === "success" ? "text-green-700" : "text-red-700"}`}>
+              <p
+                className={`text-sm sm:text-base px-4 ${
+                  scanStatus === "success" ? "text-green-700" : "text-red-700"
+                }`}
+              >
                 {scanMessage}
               </p>
             </div>
           )}
-
-          <div className="h-1 bg-gradient-to-r from-[#DD0F19] via-purple-600 to-[#EC5914] rounded-b-2xl sm:rounded-b-3xl"></div>
         </div>
       </div>
     );

@@ -1,3 +1,5 @@
+
+
 // /* eslint-disable */
 // // @ts-nocheck
 // "use client";
@@ -14,14 +16,15 @@
 // const Shclist = () => {
 //   const [date, setDate] = useState("Oct-03 Friday");
 //   const [stage, setStage] = useState(1);
-//   const [schedule, setSchedule] = useState<any[]>([]);
+//   const [schedule, setSchedule] = useState([]);
 //   const [addschedule, setAddschedule] = useState(false);
-//   const [conflicts, setConflicts] = useState<any[]>([]);
+//   const [conflicts, setConflicts] = useState([]);
 //   const [loading, setLoading] = useState(false);
 //   const [searchTerm, setSearchTerm] = useState("");
 
 //   const getDate = (dateStr) => {
 //     switch (dateStr) {
+     
 //       case "Oct-03 Friday":
 //         return "2025-10-03";
 //       case "Oct-04 Saturday":
@@ -33,13 +36,80 @@
 //     }
 //   };
 
+//   // Function specifically for cross-stage conflict checking
+//   const checkCrossStageConflicts = (currentStageData, allStagesData) => {
+//     const conflictsList = [];
+
+//     currentStageData.forEach((item, index) => {
+//       if (!item.program_name || !item.start || !item.end || !item.date || !item.category) {
+//         return;
+//       }
+
+//       // Check within current stage for duplicates
+//       const sameStageDuplicates = currentStageData.filter(
+//         (other, otherIndex) =>
+//           otherIndex !== index &&
+//           other.program_name === item.program_name &&
+//           other.date === item.date
+//       );
+
+//       if (sameStageDuplicates.length > 0) {
+//         conflictsList.push({
+//           type: "duplicate",
+//           message: `Duplicate program "${item.program_name}" in Stage ${stage} on ${item.date}`,
+//           index,
+//         });
+//       }
+
+//       // Check across all stages for the same program on same date
+//       const crossStageConflicts = allStagesData.filter(
+//         (other) =>
+//           other.program_name === item.program_name &&
+//           other.date === item.date &&
+//           other.stage !== stage // Different stage
+//       );
+
+//       if (crossStageConflicts.length > 0) {
+//         const conflictStages = crossStageConflicts.map(c => c.stage).join(', ');
+//         conflictsList.push({
+//           type: "cross_stage",
+//           message: `Program "${item.program_name}" already scheduled on Stage ${conflictStages} for ${item.date}`,
+//           index,
+//         });
+//       }
+
+//       // Time validation
+//       if (item.start >= item.end) {
+//         conflictsList.push({
+//           type: "invalid_time",
+//           message: `Invalid time for "${item.program_name}": Start time must be before end time`,
+//           index,
+//         });
+//       }
+
+//       // Date format validation
+//       if (item.date && !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
+//         conflictsList.push({
+//           type: "invalid_date",
+//           message: `Invalid date format for "${item.program_name}"`,
+//           index,
+//         });
+//       }
+//     });
+
+//     return conflictsList;
+//   };
+
+//   // Basic conflict checking for local updates (without cross-stage data)
 //   const checkConflicts = (scheduleData) => {
-//     const conflictsList: any[] = [];
+//     const conflictsList = [];
 
 //     scheduleData.forEach((item, index) => {
-//       if (!item.program_name || !item.start || !item.end || !item.date) return;
+//       if (!item.program_name || !item.start || !item.end || !item.date || !item.category) {
+//         return; // Skip incomplete items
+//       }
 
-//       // Duplicate check
+//       // Check for duplicate programs on same date and stage
 //       const duplicates = scheduleData.filter(
 //         (other, otherIndex) =>
 //           otherIndex !== index &&
@@ -51,37 +121,25 @@
 //       if (duplicates.length > 0) {
 //         conflictsList.push({
 //           type: "duplicate",
-//           message: `Duplicate program "${item.program_name}" on ${item.date}`,
+//           message: `Duplicate program "${item.program_name}" on ${item.date} Stage ${item.stage}`,
 //           index,
 //         });
 //       }
 
-//       // Overlap check
-//       const overlaps = scheduleData.filter(
-//         (other, otherIndex) =>
-//           otherIndex !== index &&
-//           other.date === item.date &&
-//           other.stage === item.stage &&
-//           other.start &&
-//           other.end &&
-//           ((item.start >= other.start && item.start < other.end) ||
-//             (item.end > other.start && item.end <= other.end) ||
-//             (item.start <= other.start && item.end >= other.end))
-//       );
-
-//       if (overlaps.length > 0) {
-//         conflictsList.push({
-//           type: "overlap",
-//           message: `Time conflict: "${item.program_name}" overlaps with "${overlaps[0].program_name}"`,
-//           index,
-//         });
-//       }
-
-//       // Invalid time
+//       // Basic time validation (start must be before end)
 //       if (item.start >= item.end) {
 //         conflictsList.push({
 //           type: "invalid_time",
 //           message: `Invalid time for "${item.program_name}": Start time must be before end time`,
+//           index,
+//         });
+//       }
+
+//       // Date format validation
+//       if (item.date && !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
+//         conflictsList.push({
+//           type: "invalid_date",
+//           message: `Invalid date format for "${item.program_name}"`,
 //           index,
 //         });
 //       }
@@ -91,19 +149,47 @@
 //     return conflictsList;
 //   };
 
+//   // Updated fetchData function with cross-stage validation
 //   const fetchData = () => {
 //     setLoading(true);
-//     AxiosInStance.get(
+    
+//     // Fetch current stage data
+//     const currentStagePromise = AxiosInStance.get(
 //       `/schedule/actions.php?api=b1daf1bbc7bbd214045af&stage=${stage}&date=${getDate(date)}`
-//     )
-//       .then((res) => {
-//         const data = res?.data?.data || [];
-//         setSchedule(data);
-//         checkConflicts(data);
+//     );
+    
+//     // Fetch all stages data for the selected date for cross-validation
+//     const allStagesPromise = AxiosInStance.get(
+//       `/schedule/actions.php?api=b1daf1bbc7bbd214045af&date=${getDate(date)}&all_stages=true`
+//     );
+
+//     Promise.all([currentStagePromise, allStagesPromise])
+//       .then(([currentRes, allRes]) => {
+//         const currentData = currentRes?.data?.data || [];
+//         const allData = allRes?.data?.data || [];
+        
+//         setSchedule(currentData);
+        
+//         // For conflict checking, we need to consider both current stage data and cross-stage conflicts
+//         const conflictsWithCrossStage = checkCrossStageConflicts(currentData, allData);
+//         setConflicts(conflictsWithCrossStage);
 //       })
-//       .catch(() => {
-//         setSchedule([]);
-//         setConflicts([]);
+//       .catch((error) => {
+//         console.error("Fetch error:", error);
+        
+//         // Fallback: try to fetch just current stage data if cross-stage fetch fails
+//         AxiosInStance.get(
+//           `/schedule/actions.php?api=b1daf1bbc7bbd214045af&stage=${stage}&date=${getDate(date)}`
+//         )
+//           .then((res) => {
+//             const data = res?.data?.data || [];
+//             setSchedule(data);
+//             checkConflicts(data);
+//           })
+//           .catch(() => {
+//             setSchedule([]);
+//             setConflicts([]);
+//           });
 //       })
 //       .finally(() => {
 //         setLoading(false);
@@ -112,13 +198,26 @@
 
 //   const updateScheduleItem = (index, field, value) => {
 //     const newSchedule = [...schedule];
-//     newSchedule[index] = { ...(newSchedule[index] || {}), [field]: value };
+    
+//     // Ensure the item exists
+//     if (!newSchedule[index]) {
+//       newSchedule[index] = {};
+//     }
+    
+//     newSchedule[index] = { ...newSchedule[index], [field]: value };
 
+//     // Reset program_name when category changes
 //     if (field === "category") {
 //       newSchedule[index].program_name = "";
 //     }
 
+//     // Ensure stage is always set
+//     if (!newSchedule[index].stage) {
+//       newSchedule[index].stage = stage;
+//     }
+
 //     setSchedule(newSchedule);
+//     // Use basic conflict checking for local updates (cross-stage will be checked on next fetch)
 //     checkConflicts(newSchedule);
 //   };
 
@@ -144,6 +243,16 @@
 //   };
 
 //   const syncSchedule = async () => {
+//     // Filter out completely empty items
+//     const filteredSchedule = schedule.filter(item => 
+//       item.program_name || item.category || item.start || item.end || item.date
+//     );
+
+//     if (filteredSchedule.length === 0) {
+//       alert("No schedule items to sync!");
+//       return;
+//     }
+
 //     if (conflicts.length > 0) {
 //       alert("Please resolve all conflicts before syncing!");
 //       return;
@@ -151,22 +260,39 @@
 
 //     setLoading(true);
 //     try {
+//       // Prepare data with proper stage values
+//       const dataToSync = filteredSchedule.map(item => ({
+//         ...item,
+//         stage: stage, // Ensure stage is consistent
+//         date: item.date || getDate(date) // Fallback date if missing
+//       }));
+
 //       const res = await AxiosInStance.post(
 //         "/schedule/actions.php?api=b1daf1bbc7bbd214045af",
-//         { stage: stage, data: schedule }
+//         { stage: stage, data: dataToSync }
 //       );
 
 //       if (res?.data?.success) {
-//         alert("Schedule synced successfully!");
-//         fetchData();
+//         alert(`Schedule synced successfully! ${res.data.items_processed || filteredSchedule.length} items processed.`);
+//         fetchData(); // Refresh data
 //       } else {
 //         const errorMessage =
-//           res?.data?.conflicts?.join("\n") || res?.data?.message || "Failed to sync";
+//           res?.data?.conflicts?.join("\n") || 
+//           res?.data?.message || 
+//           "Failed to sync schedule";
 //         alert(`Sync failed:\n${errorMessage}`);
 //       }
 //     } catch (error) {
 //       console.error("Sync error:", error);
-//       alert("Network error occurred while syncing!");
+//       let errorMessage = "Network error occurred while syncing!";
+      
+//       if (error.response?.data) {
+//         errorMessage = error.response.data.message || 
+//                       error.response.data.conflicts?.join("\n") || 
+//                       errorMessage;
+//       }
+      
+//       alert(errorMessage);
 //     } finally {
 //       setLoading(false);
 //     }
@@ -179,13 +305,12 @@
 //     (row.category || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
 //   );
 
-//   // eslint-disable-next-line react-hooks/exhaustive-deps
 //   useEffect(() => {
 //     fetchData();
 //   }, [date, stage]);
 
 //   return (
-//     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
+//     <div className="min-h-screen ">
 //       <div className="w-full px-5 py-6">
 //         {/* Header */}
 //         <div className="mb-8">
@@ -229,7 +354,7 @@
 
 //         {/* Date Selection */}
 //         <div className="flex gap-6 w-full mb-6 justify-center text-center">
-//           {["Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
+//           {["Oct-02 Thursday","Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
 //             <div
 //               onClick={() => setDate(item)}
 //               key={item}
@@ -266,7 +391,7 @@
 //           <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 animate-bounce">
 //             <div className="flex items-center gap-2 mb-3">
 //               <MdWarning className="text-red-600 text-xl" />
-//               <h3 className="font-bold text-red-800 text-lg">Scheduling Conflicts Detected!</h3>
+//               <h3 className="font-bold text-red-800 text-lg">Validation Issues Detected!</h3>
 //             </div>
 //             <ul className="text-red-700 space-y-1">
 //               {conflicts.map((conflict, index) => (
@@ -276,7 +401,7 @@
 //                 </li>
 //               ))}
 //             </ul>
-//             <p className="text-red-600 text-sm mt-2 font-medium">Please resolve these conflicts before syncing.</p>
+//             <p className="text-red-600 text-sm mt-2 font-medium">Please resolve these issues before syncing.</p>
 //           </div>
 //         )}
 
@@ -420,7 +545,7 @@
 //             </button>
 
 //             {conflicts.length > 0 && (
-//               <p className="text-red-600 text-sm mt-2 font-medium">Resolve conflicts above to enable sync</p>
+//               <p className="text-red-600 text-sm mt-2 font-medium">Resolve issues above to enable sync</p>
 //             )}
 //           </div>
 //         )}
@@ -452,9 +577,6 @@
 // };
 
 // export default Shclist;
-
-
-
 /* eslint-disable */
 // @ts-nocheck
 "use client";
@@ -465,11 +587,11 @@ import AddSchedule from "./Addschedule";
 import { AxiosInStance } from "@/lib/axios";
 import { programs } from "@/data/programs";
 
-const categories = ["general", "senior", "junior", "subjunior", "premier", "minor"];
+const categories = ["general", "senior", "junior", "subjunior", "premier", "minor", "break"];
 const stages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const Shclist = () => {
-  const [date, setDate] = useState("Oct-02 Thursday");
+  const [date, setDate] = useState("Oct-03 Friday");
   const [stage, setStage] = useState(1);
   const [schedule, setSchedule] = useState([]);
   const [addschedule, setAddschedule] = useState(false);
@@ -479,8 +601,7 @@ const Shclist = () => {
 
   const getDate = (dateStr) => {
     switch (dateStr) {
-      case "Oct-02 Thursday":
-        return "2025-10-02";
+     
       case "Oct-03 Friday":
         return "2025-10-03";
       case "Oct-04 Saturday":
@@ -492,7 +613,6 @@ const Shclist = () => {
     }
   };
 
-  // Function specifically for cross-stage conflict checking
   const checkCrossStageConflicts = (currentStageData, allStagesData) => {
     const conflictsList = [];
 
@@ -501,7 +621,17 @@ const Shclist = () => {
         return;
       }
 
-      // Check within current stage for duplicates
+      if (item.category === "break") {
+        if (item.start >= item.end) {
+          conflictsList.push({
+            type: "invalid_time",
+            message: `Invalid time for "${item.program_name}": Start time must be before end time`,
+            index,
+          });
+        }
+        return;
+      }
+
       const sameStageDuplicates = currentStageData.filter(
         (other, otherIndex) =>
           otherIndex !== index &&
@@ -517,16 +647,15 @@ const Shclist = () => {
         });
       }
 
-      // Check across all stages for the same program on same date
       const crossStageConflicts = allStagesData.filter(
         (other) =>
           other.program_name === item.program_name &&
           other.date === item.date &&
-          other.stage !== stage // Different stage
+          other.stage !== stage
       );
 
       if (crossStageConflicts.length > 0) {
-        const conflictStages = crossStageConflicts.map(c => c.stage).join(', ');
+        const conflictStages = crossStageConflicts.map((c) => c.stage).join(", ");
         conflictsList.push({
           type: "cross_stage",
           message: `Program "${item.program_name}" already scheduled on Stage ${conflictStages} for ${item.date}`,
@@ -534,7 +663,6 @@ const Shclist = () => {
         });
       }
 
-      // Time validation
       if (item.start >= item.end) {
         conflictsList.push({
           type: "invalid_time",
@@ -543,7 +671,6 @@ const Shclist = () => {
         });
       }
 
-      // Date format validation
       if (item.date && !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
         conflictsList.push({
           type: "invalid_date",
@@ -556,33 +683,32 @@ const Shclist = () => {
     return conflictsList;
   };
 
-  // Basic conflict checking for local updates (without cross-stage data)
   const checkConflicts = (scheduleData) => {
     const conflictsList = [];
 
     scheduleData.forEach((item, index) => {
       if (!item.program_name || !item.start || !item.end || !item.date || !item.category) {
-        return; // Skip incomplete items
+        return;
       }
 
-      // Check for duplicate programs on same date and stage
-      const duplicates = scheduleData.filter(
-        (other, otherIndex) =>
-          otherIndex !== index &&
-          other.program_name === item.program_name &&
-          other.date === item.date &&
-          other.stage === item.stage
-      );
+      if (item.category !== "break") {
+        const duplicates = scheduleData.filter(
+          (other, otherIndex) =>
+            otherIndex !== index &&
+            other.program_name === item.program_name &&
+            other.date === item.date &&
+            other.stage === item.stage
+        );
 
-      if (duplicates.length > 0) {
-        conflictsList.push({
-          type: "duplicate",
-          message: `Duplicate program "${item.program_name}" on ${item.date} Stage ${item.stage}`,
-          index,
-        });
+        if (duplicates.length > 0) {
+          conflictsList.push({
+            type: "duplicate",
+            message: `Duplicate program "${item.program_name}" on ${item.date} Stage ${item.stage}`,
+            index,
+          });
+        }
       }
 
-      // Basic time validation (start must be before end)
       if (item.start >= item.end) {
         conflictsList.push({
           type: "invalid_time",
@@ -591,7 +717,6 @@ const Shclist = () => {
         });
       }
 
-      // Date format validation
       if (item.date && !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
         conflictsList.push({
           type: "invalid_date",
@@ -605,16 +730,13 @@ const Shclist = () => {
     return conflictsList;
   };
 
-  // Updated fetchData function with cross-stage validation
   const fetchData = () => {
     setLoading(true);
-    
-    // Fetch current stage data
+
     const currentStagePromise = AxiosInStance.get(
       `/schedule/actions.php?api=b1daf1bbc7bbd214045af&stage=${stage}&date=${getDate(date)}`
     );
-    
-    // Fetch all stages data for the selected date for cross-validation
+
     const allStagesPromise = AxiosInStance.get(
       `/schedule/actions.php?api=b1daf1bbc7bbd214045af&date=${getDate(date)}&all_stages=true`
     );
@@ -623,17 +745,15 @@ const Shclist = () => {
       .then(([currentRes, allRes]) => {
         const currentData = currentRes?.data?.data || [];
         const allData = allRes?.data?.data || [];
-        
+
         setSchedule(currentData);
-        
-        // For conflict checking, we need to consider both current stage data and cross-stage conflicts
+
         const conflictsWithCrossStage = checkCrossStageConflicts(currentData, allData);
         setConflicts(conflictsWithCrossStage);
       })
       .catch((error) => {
         console.error("Fetch error:", error);
-        
-        // Fallback: try to fetch just current stage data if cross-stage fetch fails
+
         AxiosInStance.get(
           `/schedule/actions.php?api=b1daf1bbc7bbd214045af&stage=${stage}&date=${getDate(date)}`
         )
@@ -654,26 +774,25 @@ const Shclist = () => {
 
   const updateScheduleItem = (index, field, value) => {
     const newSchedule = [...schedule];
-    
-    // Ensure the item exists
+
     if (!newSchedule[index]) {
       newSchedule[index] = {};
     }
-    
+
     newSchedule[index] = { ...newSchedule[index], [field]: value };
 
-    // Reset program_name when category changes
     if (field === "category") {
       newSchedule[index].program_name = "";
+      if (value === "break") {
+        newSchedule[index].break_type = "";
+      }
     }
 
-    // Ensure stage is always set
     if (!newSchedule[index].stage) {
       newSchedule[index].stage = stage;
     }
 
     setSchedule(newSchedule);
-    // Use basic conflict checking for local updates (cross-stage will be checked on next fetch)
     checkConflicts(newSchedule);
   };
 
@@ -699,9 +818,8 @@ const Shclist = () => {
   };
 
   const syncSchedule = async () => {
-    // Filter out completely empty items
-    const filteredSchedule = schedule.filter(item => 
-      item.program_name || item.category || item.start || item.end || item.date
+    const filteredSchedule = schedule.filter(
+      (item) => item.program_name || item.category || item.start || item.end || item.date
     );
 
     if (filteredSchedule.length === 0) {
@@ -716,38 +834,42 @@ const Shclist = () => {
 
     setLoading(true);
     try {
-      // Prepare data with proper stage values
-      const dataToSync = filteredSchedule.map(item => ({
+      const dataToSync = filteredSchedule.map((item) => ({
         ...item,
-        stage: stage, // Ensure stage is consistent
-        date: item.date || getDate(date) // Fallback date if missing
+        stage: stage,
+        date: item.date || getDate(date),
       }));
 
-      const res = await AxiosInStance.post(
-        "/schedule/actions.php?api=b1daf1bbc7bbd214045af",
-        { stage: stage, data: dataToSync }
-      );
+      const res = await AxiosInStance.post("/schedule/actions.php?api=b1daf1bbc7bbd214045af", {
+        stage: stage,
+        data: dataToSync,
+      });
 
       if (res?.data?.success) {
-        alert(`Schedule synced successfully! ${res.data.items_processed || filteredSchedule.length} items processed.`);
-        fetchData(); // Refresh data
+        alert(
+          `Schedule synced successfully! ${
+            res.data.items_processed || filteredSchedule.length
+          } items processed.`
+        );
+        fetchData();
       } else {
         const errorMessage =
-          res?.data?.conflicts?.join("\n") || 
-          res?.data?.message || 
+          res?.data?.conflicts?.join("\n") ||
+          res?.data?.message ||
           "Failed to sync schedule";
         alert(`Sync failed:\n${errorMessage}`);
       }
     } catch (error) {
       console.error("Sync error:", error);
       let errorMessage = "Network error occurred while syncing!";
-      
+
       if (error.response?.data) {
-        errorMessage = error.response.data.message || 
-                      error.response.data.conflicts?.join("\n") || 
-                      errorMessage;
+        errorMessage =
+          error.response.data.message ||
+          error.response.data.conflicts?.join("\n") ||
+          errorMessage;
       }
-      
+
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -756,9 +878,10 @@ const Shclist = () => {
 
   const hasConflict = (index) => conflicts.some((conflict) => conflict.index === index);
 
-  const filteredSchedule = schedule.filter((row) =>
-    (row.program_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (row.category || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSchedule = schedule.filter(
+    (row) =>
+      (row.program_name || "").toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (row.category || "").toString().toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   useEffect(() => {
@@ -766,7 +889,7 @@ const Shclist = () => {
   }, [date, stage]);
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       <div className="w-full px-5 py-6">
         {/* Header */}
         <div className="mb-8">
@@ -794,7 +917,12 @@ const Shclist = () => {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
 
@@ -810,7 +938,7 @@ const Shclist = () => {
 
         {/* Date Selection */}
         <div className="flex gap-6 w-full mb-6 justify-center text-center">
-          {["Oct-02 Thursday","Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
+          {[ "Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
             <div
               onClick={() => setDate(item)}
               key={item}
@@ -857,7 +985,9 @@ const Shclist = () => {
                 </li>
               ))}
             </ul>
-            <p className="text-red-600 text-sm mt-2 font-medium">Please resolve these issues before syncing.</p>
+            <p className="text-red-600 text-sm mt-2 font-medium">
+              Please resolve these issues before syncing.
+            </p>
           </div>
         )}
 
@@ -875,25 +1005,43 @@ const Shclist = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">Category</th>
-                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">Program</th>
-                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">Date</th>
-                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">Start</th>
-                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">End</th>
-                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">Actions</th>
+                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">
+                    Category
+                  </th>
+                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">
+                    Program / Break Type
+                  </th>
+                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">
+                    Date
+                  </th>
+                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">
+                    Start
+                  </th>
+                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">
+                    End
+                  </th>
+                  <th className="border-b-2 border-gray-200 px-6 py-4 text-left font-bold text-gray-700">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSchedule?.map((row, index) => (
                   <tr
                     key={index}
-                    className={`border-b hover:bg-gray-50 transition-all duration-200 ${hasConflict(index) ? "bg-red-50 border-red-200 animate-pulse" : ""}`}
+                    className={`border-b hover:bg-gray-50 transition-all duration-200 ${
+                      hasConflict(index) ? "bg-red-50 border-red-200 animate-pulse" : ""
+                    }`}
                   >
                     <td className="px-6 py-4">
                       <select
                         value={row.category || ""}
                         onChange={(e) => updateScheduleItem(index, "category", e.target.value)}
-                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${hasConflict(index) ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-red-500"}`}
+                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                          hasConflict(index)
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-red-500"
+                        }`}
                       >
                         <option value="">Select Category</option>
                         {categories.map((item, i) => (
@@ -904,29 +1052,53 @@ const Shclist = () => {
                       </select>
                     </td>
                     <td className="px-6 py-4">
-                      <select
-                        value={row.program_name || ""}
-                        disabled={!row.category}
-                        onChange={(e) => updateScheduleItem(index, "program_name", e.target.value)}
-                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed ${hasConflict(index) ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-red-500"}`}
-                      >
-                        <option value="">Select Program</option>
-                        {row.category &&
-                          programs
-                            .filter((prgrm) => prgrm.category === row.category)
-                            ?.map((item, i) => (
+                      {row.category === "break" ? (
+                        <input
+                          type="text"
+                          placeholder="Enter break type (e.g., Lunch, Prayer)"
+                          value={row.break_type || row.program_name || ""}
+                          onChange={(e) => {
+                            updateScheduleItem(index, "break_type", e.target.value);
+                            updateScheduleItem(index, "program_name", e.target.value);
+                          }}
+                          className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                            hasConflict(index)
+                              ? "border-red-300 focus:ring-red-500"
+                              : "border-gray-300 focus:ring-red-500"
+                          }`}
+                        />
+                      ) : (
+                        <select
+                          value={row.program_name || ""}
+                          disabled={!row.category}
+                          onChange={(e) => updateScheduleItem(index, "program_name", e.target.value)}
+                          className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                            hasConflict(index)
+                              ? "border-red-300 focus:ring-red-500"
+                              : "border-gray-300 focus:ring-red-500"
+                          }`}
+                        >
+                          <option value="">Select Program</option>
+                          {programs
+                            .filter((item) => item.category === row.category)
+                            .map((item, i) => (
                               <option key={i} value={item.name}>
                                 {item.name}
                               </option>
                             ))}
-                      </select>
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <input
                         type="date"
-                        value={row.date && /^\d{4}-\d{2}-\d{2}$/.test(row.date) ? row.date : ""}
+                        value={row.date || getDate(date)}
                         onChange={(e) => updateScheduleItem(index, "date", e.target.value)}
-                        className={`w-full p-2 text-black border rounded-lg focus:outline-none focus:ring-2 transition-all ${hasConflict(index) ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-red-500"}`}
+                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                          hasConflict(index)
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-red-500"
+                        }`}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -934,7 +1106,11 @@ const Shclist = () => {
                         type="time"
                         value={row.start || ""}
                         onChange={(e) => updateScheduleItem(index, "start", e.target.value)}
-                        className={`w-full p-2 text-black border rounded-lg focus:outline-none focus:ring-2 transition-all ${hasConflict(index) ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-red-500"}`}
+                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                          hasConflict(index)
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-red-500"
+                        }`}
                       />
                     </td>
                     <td className="px-6 py-4">
@@ -942,31 +1118,27 @@ const Shclist = () => {
                         type="time"
                         value={row.end || ""}
                         onChange={(e) => updateScheduleItem(index, "end", e.target.value)}
-                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${hasConflict(index) ? "border-red-300 focus:ring-red-500" : "border-gray-300 focus:ring-red-500"}`}
+                        className={`w-full p-2 border text-black rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                          hasConflict(index)
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-gray-300 focus:ring-red-500"
+                        }`}
                       />
                     </td>
                     <td className="px-6 py-4">
                       <button
                         onClick={() => removeScheduleItem(index)}
-                        className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-all duration-200 transform hover:scale-110"
-                        title="Remove this schedule item"
+                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200"
                       >
                         <MdDelete className="text-xl" />
                       </button>
                     </td>
                   </tr>
                 ))}
-
-                {filteredSchedule.length === 0 && !loading && (
+                {filteredSchedule.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="text-6xl opacity-20">📅</div>
-                        <div>
-                          <p className="text-xl font-semibold mb-2">No schedule items found</p>
-                          <p className="text-sm">Click "Add Schedule" to create your first entry</p>
-                        </div>
-                      </div>
+                    <td colSpan={6} className="text-center py-6 text-gray-500 italic">
+                      No schedule items found
                     </td>
                   </tr>
                 )}
@@ -976,58 +1148,27 @@ const Shclist = () => {
         </div>
 
         {/* Sync Button */}
-        {schedule.length > 0 && (
-          <div className="text-center">
-            <button
-              onClick={syncSchedule}
-              disabled={conflicts.length > 0 || loading}
-              className={`px-8 py-3 rounded-xl text-lg font-bold flex items-center gap-2 mx-auto transform transition-all duration-200 shadow-lg ${
-                conflicts.length > 0 || loading
-                  ? "bg-gray-400 cursor-not-allowed text-white"
-                  : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white hover:scale-105"
-              }`}
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <MdCheckCircle className="text-xl" />
-                  Sync Schedule
-                </>
-              )}
-            </button>
+        <div className="flex justify-end">
+          <button
+            onClick={syncSchedule}
+            disabled={conflicts.length > 0 || loading}
+            className={`px-8 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all duration-200 shadow-lg ${
+              conflicts.length > 0 || loading
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white transform hover:scale-105"
+            }`}
+          >
+            <MdCheckCircle className="text-xl" />
+            {loading ? "Syncing..." : "Sync Schedule"}
+          </button>
+        </div>
 
-            {conflicts.length > 0 && (
-              <p className="text-red-600 text-sm mt-2 font-medium">Resolve issues above to enable sync</p>
-            )}
-          </div>
+        {conflicts.length > 0 && (
+          <p className="text-red-600 text-sm mt-2 font-medium">
+            Resolve issues above to enable sync
+          </p>
         )}
       </div>
-
-      {addschedule && <AddSchedule close={setAddschedule} />}
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-        }
-
-        .animate-slide-up {
-          animation: slide-up 0.8s ease-out;
-        }
-      `}</style>
     </div>
   );
 };
