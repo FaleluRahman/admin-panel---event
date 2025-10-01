@@ -5,7 +5,7 @@ import axios from "axios";
 import { ReceiptIndianRupee } from "lucide-react";
 import React from "react";
 import { GiRolledCloth } from "react-icons/gi";
-const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 
 async function page() {
   const res = await AxiosInStance.get(
