@@ -1,5 +1,3 @@
-
-
 // /* eslint-disable */
 // // @ts-nocheck
 // "use client";
@@ -577,6 +575,7 @@
 // };
 
 // export default Shclist;
+
 /* eslint-disable */
 // @ts-nocheck
 "use client";
@@ -602,7 +601,6 @@ const Shclist = () => {
 
   const getDate = (dateStr) => {
     switch (dateStr) {
-     
       case "Oct-03 Friday":
         return "2025-10-03";
       case "Oct-04 Saturday":
@@ -797,10 +795,55 @@ const Shclist = () => {
     checkConflicts(newSchedule);
   };
 
-  const removeScheduleItem = (index) => {
-    const newSchedule = schedule.filter((_, i) => i !== index);
-    setSchedule(newSchedule);
-    checkConflicts(newSchedule);
+  // NEW: Instant delete function with API call
+  const removeScheduleItem = async (index) => {
+    const itemToDelete = schedule[index];
+    
+    // If item has an ID (exists in database), delete from backend immediately
+    if (itemToDelete?.id) {
+      const confirmDelete = window.confirm(
+        `Are you sure you want to delete "${itemToDelete.program_name}"? This action cannot be undone.`
+      );
+      
+      if (!confirmDelete) {
+        return;
+      }
+      
+      setLoading(true);
+      
+      try {
+        const res = await AxiosInStance.delete(
+          `/schedule/actions.php?api=b1daf1bbc7bbd214045af&id=${itemToDelete.id}`
+        );
+        
+        if (res?.data?.success) {
+          // Remove from local state after successful deletion
+          const newSchedule = schedule.filter((_, i) => i !== index);
+          setSchedule(newSchedule);
+          checkConflicts(newSchedule);
+          
+          alert(`Successfully deleted "${itemToDelete.program_name}"`);
+        } else {
+          alert(`Failed to delete: ${res?.data?.message || 'Unknown error'}`);
+        }
+      } catch (error) {
+        console.error("Delete error:", error);
+        let errorMessage = "Failed to delete schedule item!";
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+        
+        alert(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // If item doesn't have an ID (new item not yet saved), just remove from state
+      const newSchedule = schedule.filter((_, i) => i !== index);
+      setSchedule(newSchedule);
+      checkConflicts(newSchedule);
+    }
   };
 
   const addScheduleItem = () => {
@@ -939,7 +982,7 @@ const Shclist = () => {
 
         {/* Date Selection */}
         <div className="flex gap-6 w-full mb-6 justify-center text-center">
-          {[ "Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
+          {["Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
             <div
               onClick={() => setDate(item)}
               key={item}
@@ -1129,7 +1172,13 @@ const Shclist = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => removeScheduleItem(index)}
-                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200"
+                        disabled={loading}
+                        className={`p-2 rounded-lg transition-all duration-200 transform hover:scale-110 ${
+                          loading
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            : "bg-red-50 hover:bg-red-100 text-red-600"
+                        }`}
+                        title={row.id ? "Delete from database immediately" : "Remove from list"}
                       >
                         <MdDelete className="text-xl" />
                       </button>
@@ -1165,7 +1214,7 @@ const Shclist = () => {
         </div>
 
         {conflicts.length > 0 && (
-          <p className="text-red-600 text-sm mt-2 font-medium">
+          <p className="text-red-600 text-sm mt-2 text-right font-medium">
             Resolve issues above to enable sync
           </p>
         )}
