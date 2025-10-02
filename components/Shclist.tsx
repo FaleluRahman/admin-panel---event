@@ -612,6 +612,7 @@ const Shclist = () => {
     }
   };
 
+  // UPDATED: Check conflicts with category consideration
   const checkCrossStageConflicts = (currentStageData, allStagesData) => {
     const conflictsList = [];
 
@@ -620,6 +621,7 @@ const Shclist = () => {
         return;
       }
 
+      // Skip conflict checks for breaks (except time validation)
       if (item.category === "break") {
         if (item.start >= item.end) {
           conflictsList.push({
@@ -631,24 +633,28 @@ const Shclist = () => {
         return;
       }
 
+      // UPDATED: Check for duplicate program+category within same stage
       const sameStageDuplicates = currentStageData.filter(
         (other, otherIndex) =>
           otherIndex !== index &&
           other.program_name === item.program_name &&
+          other.category === item.category &&
           other.date === item.date
       );
 
       if (sameStageDuplicates.length > 0) {
         conflictsList.push({
           type: "duplicate",
-          message: `Duplicate program "${item.program_name}" in Stage ${stage} on ${item.date}`,
+          message: `Duplicate: "${item.program_name}" (${item.category}) already exists in Stage ${stage} on ${item.date}`,
           index,
         });
       }
 
+      // UPDATED: Check across stages for same program+category combination
       const crossStageConflicts = allStagesData.filter(
         (other) =>
           other.program_name === item.program_name &&
+          other.category === item.category &&
           other.date === item.date &&
           other.stage !== stage
       );
@@ -657,11 +663,12 @@ const Shclist = () => {
         const conflictStages = crossStageConflicts.map((c) => c.stage).join(", ");
         conflictsList.push({
           type: "cross_stage",
-          message: `Program "${item.program_name}" already scheduled on Stage ${conflictStages} for ${item.date}`,
+          message: `"${item.program_name}" (${item.category}) is already scheduled on Stage ${conflictStages} for ${item.date}`,
           index,
         });
       }
 
+      // Time validation
       if (item.start >= item.end) {
         conflictsList.push({
           type: "invalid_time",
@@ -670,6 +677,7 @@ const Shclist = () => {
         });
       }
 
+      // Date format validation
       if (item.date && !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
         conflictsList.push({
           type: "invalid_date",
@@ -682,6 +690,7 @@ const Shclist = () => {
     return conflictsList;
   };
 
+  // UPDATED: Basic conflict checking with category
   const checkConflicts = (scheduleData) => {
     const conflictsList = [];
 
@@ -690,11 +699,14 @@ const Shclist = () => {
         return;
       }
 
+      // Skip duplicate checks for breaks
       if (item.category !== "break") {
+        // UPDATED: Check for duplicate program+category combination
         const duplicates = scheduleData.filter(
           (other, otherIndex) =>
             otherIndex !== index &&
             other.program_name === item.program_name &&
+            other.category === item.category &&
             other.date === item.date &&
             other.stage === item.stage
         );
@@ -702,12 +714,13 @@ const Shclist = () => {
         if (duplicates.length > 0) {
           conflictsList.push({
             type: "duplicate",
-            message: `Duplicate program "${item.program_name}" on ${item.date} Stage ${item.stage}`,
+            message: `Duplicate: "${item.program_name}" (${item.category}) on ${item.date} Stage ${item.stage}`,
             index,
           });
         }
       }
 
+      // Time validation
       if (item.start >= item.end) {
         conflictsList.push({
           type: "invalid_time",
@@ -716,6 +729,7 @@ const Shclist = () => {
         });
       }
 
+      // Date format validation
       if (item.date && !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
         conflictsList.push({
           type: "invalid_date",
@@ -795,14 +809,12 @@ const Shclist = () => {
     checkConflicts(newSchedule);
   };
 
-  // NEW: Instant delete function with API call
   const removeScheduleItem = async (index) => {
     const itemToDelete = schedule[index];
     
-    // If item has an ID (exists in database), delete from backend immediately
     if (itemToDelete?.id) {
       const confirmDelete = window.confirm(
-        `Are you sure you want to delete "${itemToDelete.program_name}"? This action cannot be undone.`
+        `Are you sure you want to delete "${itemToDelete.program_name}" (${itemToDelete.category})? This action cannot be undone.`
       );
       
       if (!confirmDelete) {
@@ -817,7 +829,6 @@ const Shclist = () => {
         );
         
         if (res?.data?.success) {
-          // Remove from local state after successful deletion
           const newSchedule = schedule.filter((_, i) => i !== index);
           setSchedule(newSchedule);
           checkConflicts(newSchedule);
@@ -828,18 +839,11 @@ const Shclist = () => {
         }
       } catch (error) {
         console.error("Delete error:", error);
-        let errorMessage = "Failed to delete schedule item!";
-        
-        if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        }
-        
-        alert(errorMessage);
+        alert(error.response?.data?.message || "Failed to delete schedule item!");
       } finally {
         setLoading(false);
       }
     } else {
-      // If item doesn't have an ID (new item not yet saved), just remove from state
       const newSchedule = schedule.filter((_, i) => i !== index);
       setSchedule(newSchedule);
       checkConflicts(newSchedule);
@@ -935,15 +939,14 @@ const Shclist = () => {
   return (
     <div className="min-h-screen">
       <div className="w-full px-5 py-6">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-2 animate-fade-in">
             Schedule Management
           </h1>
           <p className="text-gray-600 text-lg">Organize and manage event schedules efficiently</p>
+          <p className="text-sm text-gray-500 mt-1">✓ Same program name allowed in different categories</p>
         </div>
 
-        {/* Search and Add Controls */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 animate-slide-up">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="relative flex-1 max-w-md">
@@ -980,7 +983,6 @@ const Shclist = () => {
           </div>
         </div>
 
-        {/* Date Selection */}
         <div className="flex gap-6 w-full mb-6 justify-center text-center">
           {["Oct-03 Friday", "Oct-04 Saturday", "Oct-05 Sunday"].map((item) => (
             <div
@@ -997,7 +999,6 @@ const Shclist = () => {
           ))}
         </div>
 
-        {/* Stage Selection */}
         <div className="flex overflow-x-auto gap-2 w-full py-2 mb-6">
           {stages.map((stageNum) => (
             <div
@@ -1014,7 +1015,6 @@ const Shclist = () => {
           ))}
         </div>
 
-        {/* Conflicts Alert */}
         {conflicts.length > 0 && (
           <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 animate-bounce">
             <div className="flex items-center gap-2 mb-3">
@@ -1035,7 +1035,6 @@ const Shclist = () => {
           </div>
         )}
 
-        {/* Loading Indicator */}
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-red-500 border-t-transparent"></div>
@@ -1043,7 +1042,6 @@ const Shclist = () => {
           </div>
         )}
 
-        {/* Schedule Table */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1197,7 +1195,6 @@ const Shclist = () => {
           </div>
         </div>
 
-        {/* Sync Button */}
         <div className="flex justify-end">
           <button
             onClick={syncSchedule}
