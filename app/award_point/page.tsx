@@ -11,9 +11,9 @@ import {
   RefreshCw,
   Search,
   Filter,
-  Edit,
 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
+export const dynamic = "force-dynamic";
 
 const AdminPanel = () => {
   const [programs, setPrograms] = useState<any[]>([]);
@@ -29,8 +29,7 @@ const AdminPanel = () => {
   const [loadingModal, setLoadingModal] = useState(false);
   const [assigningPoints, setAssigningPoints] = useState<any>({});
 
-  const API_BASE =
-    "https://rend-application.abaqas.in/award/actions.php?api=b1daf1bbc7bbd214045af";
+  const API_BASE = "https://rend-application.abaqas.in/award/actions.php?api=b1daf1bbc7bbd214045af";
   const EXTERNAL_API = "https://rendezvous.abaqas.in/programs";
 
   const addToast = (type: string, message: string) => {
@@ -52,13 +51,28 @@ const AdminPanel = () => {
     setError(null);
 
     try {
+      console.log("Fetching programs...");
       const response = await fetch(
         `${EXTERNAL_API}/action.php?action=pagination&status=announced`
       );
       const data = await response.json();
+      console.log("Programs API Response:", data);
 
       if (data.success && data.data) {
-        setPrograms(data.data);
+        const allPrograms = Array.isArray(data.data) ? data.data : [];
+        console.log("Total programs:", allPrograms.length);
+        
+        // FIXED: Filter by isGroup field (0 = individual, 1 = group)
+        const individualPrograms = allPrograms.filter((program: any) => {
+          return program.isGroup === 0 || program.isGroup === "0";
+        });
+        
+        console.log("Individual programs found:", individualPrograms.length);
+        setPrograms(individualPrograms);
+        
+        if (individualPrograms.length === 0) {
+          setError("No individual programs found. Only group programs are available.");
+        }
       } else {
         setError("Failed to fetch programs");
       }
@@ -77,57 +91,111 @@ const AdminPanel = () => {
     setModalResults(null);
 
     try {
+      console.log("Fetching results for program:", program.id);
       const response = await fetch(
         `${EXTERNAL_API}/results.php?action=resultCheck&program=${program.id}`
       );
       const data = await response.json();
+      console.log("Results API Response:", data);
 
       if (data.success && data.data) {
-        // Check assignment status for each result from database
+        const resultsArray = Array.isArray(data.data) ? data.data : [];
+        console.log("Total results found:", resultsArray.length);
+
+        // Check assignment status for each result
         const resultsWithStatus = await Promise.all(
-          data.data.map(async (result: any) => {
+          resultsArray.map(async (result: any) => {
             try {
-              const checkRes = await fetch(
-                `${API_BASE}&action=check_assignment&result_id=${result.id}&program_id=${program.id}`
-              );
+              const jamiaId = result.jamiaNo || "";
+              if (!jamiaId) {
+                console.warn("Missing jamia ID for result:", result);
+                return { ...result, isAssigned: false, id: result.rank + "-" + result.student };
+              }
+
+              // Add unique ID if missing
+              const resultId = result.id || `${program.id}-${jamiaId}-${result.rank}`;
+              
+              const checkUrl = `${API_BASE}&action=check_assignment&result_id=${resultId}&program_id=${program.id}&jamia_id=${jamiaId}`;
+              console.log("Checking assignment for:", result.student, jamiaId);
+              
+              const checkRes = await fetch(checkUrl);
               const checkData = await checkRes.json();
+              console.log(`Assignment status for ${result.student}:`, checkData);
+              
               return {
                 ...result,
+                id: resultId,
                 isAssigned: checkData.is_assigned || false
               };
-            } catch {
-              return { ...result, isAssigned: false };
+            } catch (err) {
+              console.error(`Error checking assignment for ${result.student}:`, err);
+              return { 
+                ...result, 
+                id: result.id || `${program.id}-${result.jamiaNo}-${result.rank}`,
+                isAssigned: false 
+              };
             }
           })
         );
+
+        console.log("Results with status:", resultsWithStatus);
 
         setModalResults({
           ...data,
           data: resultsWithStatus
         });
       } else {
-        addToast("error", "Failed to fetch results");
+        addToast("error", "No results found for this program");
+        setModalResults({ data: [] });
       }
     } catch (err) {
       addToast("error", "Network error: Could not fetch results");
       console.error("Modal fetch error:", err);
+      setModalResults({ data: [] });
     } finally {
       setLoadingModal(false);
     }
   };
 
   const handleAssignPoints = async (resultItem: any) => {
-    setAssigningPoints((prev: any) => ({ ...prev, [resultItem.id]: true }));
+    const jamiaId = resultItem.jamiaNo || "";
+    if (!jamiaId) {
+      addToast("error", "Missing Jamia ID for this student");
+      return;
+    }
+
+    const uniqueKey = `${resultItem.id}-${jamiaId}`;
+    setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: true }));
 
     try {
-      const pointsMap: any = { 1: 100, 2: 80, 3: 60 };
-      const points = pointsMap[resultItem.rank] || 0;
+     const pointsMap: Record<number, number> = { 1: 100, 2: 80, 3: 60 };
+const points = pointsMap[Number(resultItem.rank)] || 0;
 
       if (points === 0) {
         addToast("error", "Only ranks 1-3 are eligible for points");
-        setAssigningPoints((prev: any) => ({ ...prev, [resultItem.id]: false }));
+        setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
         return;
       }
+
+      console.log("Assigning points for:", {
+        result_id: resultItem.id,
+        jamia_id: jamiaId,
+        student: resultItem.student,
+        rank: resultItem.rank,
+        points: points
+      });
+
+      const payload = {
+        result_id: resultItem.id,
+        program_id: selectedProgram.id,
+        jamia_id: jamiaId,
+        student_name: resultItem.student.trim(),
+        program_name: modalResults?.program?.name || selectedProgram?.name || "",
+        program_type: "individual",
+        rank_position: parseInt(resultItem.rank),
+      };
+
+      console.log("Sending payload:", payload);
 
       const response = await fetch(`${API_BASE}&action=add_and_assign`, {
         method: "POST",
@@ -135,41 +203,34 @@ const AdminPanel = () => {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        body: JSON.stringify({
-          result_id: resultItem.id,
-          program_id: selectedProgram.id,
-          jamia_id: resultItem.jamiaNo,
-          student_name: resultItem.student,
-          program_name: modalResults?.program?.name || selectedProgram?.name || "",
-          program_type: resultItem.team ? "group" : "individual",
-          rank_position: resultItem.rank,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const responseText = await response.text();
-      console.log("Response:", responseText);
+      console.log("Assignment response text:", responseText);
 
       if (!responseText || responseText.trim() === '') {
         addToast("error", "Empty response from server");
-        setAssigningPoints((prev: any) => ({ ...prev, [resultItem.id]: false }));
+        setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
         return;
       }
 
       let data;
       try {
         data = JSON.parse(responseText.trim());
+        console.log("Parsed response:", data);
       } catch (parseError) {
         console.error("Parse error:", parseError);
         console.error("Raw text:", responseText);
-        addToast("error", "Invalid server response");
-        setAssigningPoints((prev: any) => ({ ...prev, [resultItem.id]: false }));
+        addToast("error", "Invalid server response: " + responseText.substring(0, 100));
+        setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
         return;
       }
 
       if (data.success) {
         addToast(
           "success",
-          `${data.points_assigned} points assigned to ${data.student_name}! Balance: ${data.new_wallet_balance} pts`
+          `${data.points_assigned} points assigned to ${data.student_name}! New balance: ${data.new_wallet_balance} pts`
         );
 
         // Update UI to show assigned
@@ -178,7 +239,9 @@ const AdminPanel = () => {
           return {
             ...prev,
             data: prev.data.map((item: any) =>
-              item.id === resultItem.id ? { ...item, isAssigned: true } : item
+              item.id === resultItem.id && item.jamiaNo === jamiaId
+                ? { ...item, isAssigned: true }
+                : item
             ),
           };
         });
@@ -189,7 +252,7 @@ const AdminPanel = () => {
       console.error("Error:", err);
       addToast("error", err.message || "Network error");
     } finally {
-      setAssigningPoints((prev: any) => ({ ...prev, [resultItem.id]: false }));
+      setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
     }
   };
 
@@ -198,8 +261,7 @@ const AdminPanel = () => {
   };
 
   const filteredPrograms = programs.filter((program: any) => {
-    const categoryMatch =
-      filterCategory === "all" || program.category === filterCategory;
+    const categoryMatch = filterCategory === "all" || program.category === filterCategory;
     const searchMatch =
       searchTerm === "" ||
       program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -247,18 +309,13 @@ const AdminPanel = () => {
                 )}
               </div>
               <div className="ml-3 flex-1">
-                <p
-                  className={`text-sm font-medium ${
+                <p className={`text-sm font-medium ${
                     toast.type === "success" ? "text-green-800" : "text-red-800"
-                  }`}
-                >
+                  }`}>
                   {toast.message}
                 </p>
               </div>
-              <button
-                onClick={() => removeToast(toast.id)}
-                className="ml-3 flex-shrink-0"
-              >
+              <button onClick={() => removeToast(toast.id)} className="ml-3 flex-shrink-0">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -275,11 +332,9 @@ const AdminPanel = () => {
                 <Users className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Points Assignment Portal
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">Points Assignment Portal</h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  Assign points to students based on program results
+                  Assign points to students based on individual program results
                 </p>
               </div>
             </div>
@@ -288,16 +343,14 @@ const AdminPanel = () => {
               disabled={loading}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <RefreshCw
-                className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
@@ -305,47 +358,39 @@ const AdminPanel = () => {
               <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
               <span className="text-red-800">{error}</span>
             </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-600 hover:text-red-800"
-            >
+            <button onClick={() => setError(null)} className="text-red-600 hover:text-red-800">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        <div className="mb-6 bg-white rounded-lg shadow-sm border p-6 text-gray-600">
+        {/* Filters */}
+        <div className="mb-6 bg-white rounded-lg shadow-sm border p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Programs
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search Programs</label>
               <div className="relative">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="Search by name or category"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category Filter
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category Filter</label>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="all">All Categories</option>
                 {getUniqueCategories().map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
+                  <option key={category} value={category}>{category}</option>
                 ))}
               </select>
             </div>
@@ -364,44 +409,28 @@ const AdminPanel = () => {
 
         {/* Programs Table */}
         <div className="bg-white rounded-lg shadow-lg border overflow-hidden">
-          {/* Gradient Header Bar */}
           <div className="h-2 bg-gradient-to-r from-pink-400 to-violet-500"></div>
           
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-pink-50 to-violet-50 border-b-2 border-violet-200">
-                  <th className="px-6 py-4 pl-10 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">
-                    ID
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">
-                    Program Name
-                  </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">
-                    Category
-                  </th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wide">
-                    Actions
-                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">ID</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">Program Name</th>
+                  <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">Category</th>
+                  <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {filteredPrograms.map((program, idx) => (
-                  <tr 
-                    key={program.id} 
-                    className="hover:bg-gradient-to-r hover:from-pink-25 hover:to-violet-25 transition-all duration-150"
-                  >
+                {filteredPrograms.map((program) => (
+                  <tr key={program.id} className="hover:bg-gradient-to-r hover:from-pink-50 hover:to-violet-50 transition-all duration-150">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 text-sm font-bold text-violet-700">
                         {program.id}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-base font-bold text-gray-900 uppercase">
-                          {program.name}
-                        </span>
-                      </div>
+                      <span className="text-base font-bold text-gray-900 uppercase">{program.name}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-pink-100 to-violet-100 text-violet-800 border border-violet-200">
@@ -427,11 +456,9 @@ const AdminPanel = () => {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 mb-4">
                 <Users className="w-10 h-10 text-violet-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                No programs found
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No individual programs found</h3>
               <p className="text-sm text-gray-500">
-                Try adjusting your filters to see more results
+                Try adjusting your filters or check back later for individual programs
               </p>
             </div>
           )}
@@ -452,27 +479,24 @@ const AdminPanel = () => {
                 <div className="flex justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                 </div>
-              ) : modalResults && modalResults.data ? (
+              ) : modalResults && modalResults.data && modalResults.data.length > 0 ? (
                 <div className="flex flex-col gap-3 max-h-[80vh]">
-                  {/* Header Section */}
-                  <div className="flex flex-row items-center justify-between bg-violet-100 p-10 pb-7 pr-20">
-                    <div className="flex flex-col items-start justify-between">
+                  {/* Header */}
+                  <div className="flex flex-row items-center justify-between bg-violet-100 p-10 pb-7">
+                    <div className="flex flex-col items-start">
                       <p className="uppercase text-sm font-semibold text-gray-600">
                         {modalResults?.program?.category || selectedProgram?.category}
                       </p>
-
-                      <h6 className="font-bold text-3xl bg-gradient-to-r from-pink-400 to-violet-500 bg-clip-text text-transparent text-left uppercase mt-2">
+                      <h6 className="font-bold text-3xl bg-gradient-to-r from-pink-400 to-violet-500 bg-clip-text text-transparent uppercase mt-2">
                         {selectedProgram?.name}
                       </h6>
-
-                     
                     </div>
- <div className="flex items-baseline gap-2">
-                        <p className="text-xl font-semibold  text-gray-700">#result</p>
-                        <h6 className="font-bold text-8xl w-full text-center bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-700 mt-4">
-                          {selectedProgram?.id}
-                        </h6>
-                      </div>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-xl font-semibold text-gray-700">#result</p>
+                      <h6 className="font-bold text-8xl bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-700">
+                        {selectedProgram?.id}
+                      </h6>
+                    </div>
                     <button
                       onClick={() => setShowModal(false)}
                       className="text-gray-600 hover:text-gray-800 absolute top-4 right-4"
@@ -481,73 +505,74 @@ const AdminPanel = () => {
                     </button>
                   </div>
 
-                  {/* Gradient Bar */}
                   <div className="h-2 bg-gradient-to-r from-pink-400 to-violet-500"></div>
 
-                  {/* Table Section */}
+                  {/* Table */}
                   <div className="flex flex-col gap-3 px-6 pb-6 overflow-y-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b-2">
                           <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Place</th>
-                          <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Jamia id</th>
+                          <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Jamia ID</th>
                           <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Name</th>
                           <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Campus</th>
                           <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {modalResults.data.map((result: any, index: number) => (
-                          <tr
-                            key={index}
-                            className={`text-[15px] py-2 border-b hover:bg-gray-50 ${
-                              !["1", "2", "3"].includes(result.rank.toString()) && "bg-gray-100"
-                            } ${result.isAssigned ? "bg-green-50" : ""}`}
-                          >
-                         
-                            <td className="py-3 px-2">
-                              <div
-                                className={`rounded-md p-2 flex items-center justify-center h-7 w-7 font-bold ${
-                                  result.rank == 1
-                                    ? "bg-yellow-200 text-gray-900"
-                                    : result.rank == 2
-                                    ? "bg-green-200 text-gray-900"
-                                    : result.rank == 3
-                                    ? "bg-pink-200 text-gray-900"
-                                    : "bg-gray-200 text-gray-700"
-                                }`}
-                              >
-                                {result.rank}
-                              </div>
-                            </td>
-                            <td className="py-3 px-2 text-gray-700">{result.jamiaNo}</td>
-                            <td className="py-3 px-2 font-bold uppercase text-gray-900">
-                              {result.student}
-                            </td>
-                            <td className="py-3 px-2 text-gray-700">{result.team || "—"}</td>
-                            <td className="py-3 px-2">
-                              {result.isAssigned ? (
-                                <span className="inline-flex items-center text-sm text-green-700 bg-green-200 px-3 py-1 rounded-full font-medium">
-                                  <CheckCircle className="w-4 h-4 mr-1" />
-                                  Assigned
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() => handleAssignPoints(result)}
-                                  disabled={assigningPoints[result.id]}
-                                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-pink-500 to-violet-600 hover:from-pink-600 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        {modalResults.data.map((result: any, index: number) => {
+                          const jamiaId = result.jamiaNo || "";
+                          const uniqueKey = `${result.id}-${jamiaId}`;
+                          
+                          return (
+                            <tr
+                              key={index}
+                              className={`text-[15px] py-2 border-b hover:bg-gray-50 ${
+                                !["1", "2", "3"].includes(String(result.rank)) ? "bg-gray-100" : ""
+                              } ${result.isAssigned ? "bg-green-50" : ""}`}
+                            >
+                              <td className="py-3 px-2">
+                                <div
+                                  className={`rounded-md p-2 flex items-center justify-center h-7 w-7 font-bold ${
+                                    result.rank == 1
+                                      ? "bg-yellow-200 text-gray-900"
+                                      : result.rank == 2
+                                      ? "bg-green-200 text-gray-900"
+                                      : result.rank == 3
+                                      ? "bg-pink-200 text-gray-900"
+                                      : "bg-gray-200 text-gray-700"
+                                  }`}
                                 >
-                                  {assigningPoints[result.id] ? (
-                                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                                  ) : (
-                                    <Award className="w-4 h-4 mr-1" />
-                                  )}
-                                  Assign Points
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                  {result.rank}
+                                </div>
+                              </td>
+                              <td className="py-3 px-2 text-gray-700">{jamiaId}</td>
+                              <td className="py-3 px-2 font-bold uppercase text-gray-900">{result.student}</td>
+                              <td className="py-3 px-2 text-gray-700">{result.team || "—"}</td>
+                              <td className="py-3 px-2">
+                                {result.isAssigned ? (
+                                  <span className="inline-flex items-center text-sm text-green-700 bg-green-200 px-3 py-1 rounded-full font-medium">
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Assigned
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleAssignPoints(result)}
+                                    disabled={assigningPoints[uniqueKey]}
+                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-pink-500 to-violet-600 hover:from-pink-600 hover:to-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {assigningPoints[uniqueKey] ? (
+                                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                                    ) : (
+                                      <Award className="w-4 h-4 mr-1" />
+                                    )}
+                                    Assign Points
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -555,17 +580,13 @@ const AdminPanel = () => {
               ) : (
                 <div className="text-center py-12">
                   <Award className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No results found
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    This program doesn't have any results yet
-                  </p>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No results found</h3>
+                  <p className="mt-1 text-sm text-gray-500">This program doesn't have any results yet</p>
                   <button
                     onClick={() => setShowModal(false)}
-                    className="mt-4 text-gray-600 hover:text-gray-800"
+                    className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                   >
-                    <X className="w-6 h-6 mx-auto" />
+                    Close
                   </button>
                 </div>
               )}
