@@ -47,11 +47,12 @@ function Form() {
   const [timeMinute, setTimeMinute] = useState("");
   const [timeAmPm, setTimeAmPm] = useState("AM");
  const types = [
-    { label: "Expert Convos", value: "Expert Convos" },
+   { label: "Expert Convos", value: "Expert Convos" },
     { label: "Edu Login", value: "Edu Login" },
     { label: "WriteWell Clinic", value: "WriteWell Clinic" },
     { label: "Pro Chat", value: "Pro Chat" },
-    { label: "Tranquil Wellness Hub", value: "Wellness Hub" },
+    { label: "Mind Wellness Clinic", value: "Mind Wellness" },
+ { label: "Science Orbit", value: "Science Orbit" },
   ];
   // Generate hours (1-12) and minutes (00-59)
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));

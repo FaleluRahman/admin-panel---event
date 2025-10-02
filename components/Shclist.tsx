@@ -944,7 +944,7 @@ const Shclist = () => {
             Schedule Management
           </h1>
           <p className="text-gray-600 text-lg">Organize and manage event schedules efficiently</p>
-          <p className="text-sm text-gray-500 mt-1">✓ Same program name allowed in different categories</p>
+          {/* <p className="text-sm text-gray-500 mt-1">✓ Same program name allowed in different categories</p> */}
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 animate-slide-up">
