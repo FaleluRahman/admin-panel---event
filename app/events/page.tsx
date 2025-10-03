@@ -433,7 +433,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import { AxiosInStance } from "@/lib/axios";
 import Link from "next/link";
-import { SquarePen, Trash2, CircleX, ImageOff, ScanLine } from "lucide-react";
+import { SquarePen, Trash2, CircleX, ImageOff, ScanLine, CalendarDays } from "lucide-react";
 import { Scanner ,IDetectedBarcode} from "@yudiel/react-qr-scanner";
 
 type EventType = {
@@ -766,6 +766,16 @@ export default function Page() {
                           <div>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#EC5914]/10 text-[#EC5914] border border-[#EC5914]/20">
                               {evt.type || "General"}
+                            </span>
+                          </div>
+                        </div>
+                          <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0 w-8 h-8 bg-[#EEFBOE] border border-[#8B8C8C]/20 rounded-lg flex items-center justify-center">
+                         <CalendarDays className="text-[#DD0F19] w-4 h-4"/> 
+                          </div>
+                          <div>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#EC5914]/10 text-[#EC5914] border border-[#EC5914]/20">
+                              {evt.date || "n/a"}
                             </span>
                           </div>
                         </div>
