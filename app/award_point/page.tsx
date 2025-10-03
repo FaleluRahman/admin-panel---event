@@ -71,7 +71,7 @@ const AdminPanel = () => {
         setPrograms(individualPrograms);
         
         if (individualPrograms.length === 0) {
-          setError("No individual programs found. Only group programs are available.");
+          setError("No individual programs found");
         }
       } else {
         setError("Failed to fetch programs");
