@@ -9,6 +9,7 @@ interface FormData {
   title: string;
   place: string;
   time: string;
+  date: string;
   type: string;
   description: string;
   image: File | null;
@@ -18,6 +19,7 @@ interface Errors {
   title?: string;
   place?: string;
   time?: string;
+  date?: string;
   type?: string;
   description?: string;
   image?: string;
@@ -30,6 +32,7 @@ function Form() {
     title: "",
     place: "",
     time: "",
+    date: "",
     type: "",
     description: "",
     image: null,
@@ -133,6 +136,7 @@ function Form() {
     if (!formData.title.trim()) newErrors.title = "Title is required";
     if (!formData.place.trim()) newErrors.place = "Location is required";
     if (!formData.time) newErrors.time = "Time is required";
+    if (!formData.date) newErrors.date = "Date is required";
     if (!formData.type) newErrors.type = "Event type is required";
     // Description is optional, so no validation needed
 
@@ -151,9 +155,10 @@ function Form() {
       const submitData = new FormData();
       submitData.append('title', formData.title);
       submitData.append('place', formData.place);
-      submitData.append('time', formData.time); // This will now be in "10:00AM" format
+      submitData.append('time', formData.time);
+      submitData.append('date', formData.date);
       submitData.append('type', formData.type);
-      submitData.append('description', formData.description); // Add description to form data
+      submitData.append('description', formData.description);
       
       if (formData.image) {
         submitData.append('image', formData.image);
@@ -417,6 +422,40 @@ function Form() {
                 {errors.place && (
                   <p className="text-red-500 text-xs animate-shake">
                     {errors.place}
+                  </p>
+                )}
+              </div>
+
+              {/* Date Field */}
+              <div className="space-y-2 animate-fade-in delay-550">
+                <label
+                  htmlFor="date"
+                  className="block text-sm font-semibold text-gray-700"
+                >
+                  Event Date
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="date"
+                    id="date"
+                    required
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    onFocus={() => setFocusedField("date")}
+                    onBlur={() => setFocusedField("")}
+                    min={new Date().toISOString().split('T')[0]}
+                    className={`w-full px-4 py-3 border rounded-xl shadow-sm transition-all duration-300 transform ${
+                      focusedField === "date"
+                        ? "border-pink-400 ring-4 ring-pink-100 scale-105 shadow-lg"
+                        : "border-gray-300 hover:border-gray-400"
+                    } ${errors.date ? "border-red-400 ring-red-100" : ""} 
+                    focus:outline-none bg-white/70 backdrop-blur-sm`}
+                  />
+                </div>
+                {errors.date && (
+                  <p className="text-red-500 text-xs animate-shake">
+                    {errors.date}
                   </p>
                 )}
               </div>

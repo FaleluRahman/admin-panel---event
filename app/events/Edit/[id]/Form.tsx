@@ -8,6 +8,7 @@ import { Upload, X, Image } from "lucide-react";
 interface FormData {
   title: string;
   place: string;
+  date: string;
   time: string;
   type: string;
   description: string;
@@ -17,6 +18,7 @@ interface FormData {
 interface Errors {
   title?: string;
   place?: string;
+  date?: string;
   time?: string;
   type?: string;
   description?: string;
@@ -33,6 +35,7 @@ function Form() {
   const [formData, setFormData] = useState<FormData>({
     title: "",
     place: "",
+    date: "",
     time: "",
     type: "",
     description: "",
@@ -46,14 +49,16 @@ function Form() {
   const [timeHour, setTimeHour] = useState("");
   const [timeMinute, setTimeMinute] = useState("");
   const [timeAmPm, setTimeAmPm] = useState("AM");
- const types = [
-   { label: "Expert Convos", value: "Expert Convos" },
+  
+  const types = [
+    { label: "Expert Convos", value: "Expert Convos" },
     { label: "Edu Login", value: "Edu Login" },
     { label: "WriteWell Clinic", value: "WriteWell Clinic" },
     { label: "Pro Chat", value: "Pro Chat" },
     { label: "Mind Wellness Clinic", value: "Mind Wellness" },
- { label: "Science Orbit", value: "Science Orbit" },
+    { label: "Science Orbit", value: "Science Orbit" },
   ];
+  
   // Generate hours (1-12) and minutes (00-59)
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
@@ -105,6 +110,7 @@ function Form() {
           setFormData({
             title: eventData.title || "",
             place: eventData.place || "",
+            date: eventData.date || "",
             time: eventData.time || "",
             type: eventData.type || "",
             description: eventData.description || "",
@@ -207,9 +213,9 @@ function Form() {
     const newErrors: Errors = {};
     if (!formData.title.trim()) newErrors.title = "Title is required";
     if (!formData.place.trim()) newErrors.place = "Location is required";
+    if (!formData.date) newErrors.date = "Date is required";
     if (!formData.time) newErrors.time = "Time is required";
     if (!formData.type) newErrors.type = "Event type is required";
-    // Description is optional, so no validation needed
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -224,11 +230,12 @@ function Form() {
       const submitData = new FormData();
       submitData.append('title', formData.title);
       submitData.append('place', formData.place);
-      submitData.append('time', formData.time); // This will now be in "10:00AM" format
+      submitData.append('date', formData.date);
+      submitData.append('time', formData.time);
       submitData.append('type', formData.type);
-      submitData.append('description', formData.description); // Add description to form data
+      submitData.append('description', formData.description);
       if (formData.image) submitData.append('image', formData.image);
-      submitData.append('_method', 'PUT'); // tell backend this is an update
+      submitData.append('_method', 'PUT');
 
       const res = await AxiosInStance.post(
         `events/actions.php?api=b1daf1bbc7bbd214045af&id=${eventId}`,
@@ -367,91 +374,74 @@ function Form() {
                 {errors.place && (<p className="text-red-500 text-xs animate-shake">{errors.place}</p>)}
               </div>
 
-              {/* ---- Time Field - Updated to AM/PM format ---- */}
+              {/* ---- Date Field ---- */}
+              <div className="space-y-2 animate-fade-in delay-550">
+                <label htmlFor="date" className="block text-sm font-semibold text-gray-700">Event Date</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="date"
+                    id="date"
+                    required
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    onFocus={() => setFocusedField("date")}
+                    onBlur={() => setFocusedField("")}
+                    min={new Date().toISOString().split('T')[0]}
+                    className={`w-full px-4 py-3 border rounded-xl shadow-sm transition-all duration-300 transform ${
+                      focusedField === "date"
+                        ? "border-pink-400 ring-4 ring-pink-100 scale-105 shadow-lg"
+                        : "border-gray-300 hover:border-gray-400"
+                    } ${errors.date ? "border-red-400 ring-red-100" : ""} 
+                    focus:outline-none bg-white/70 backdrop-blur-sm`}
+                  />
+                </div>
+                {errors.date && (
+                  <p className="text-red-500 text-xs animate-shake">{errors.date}</p>
+                )}
+              </div>
+
+              {/* ---- Time Field - AM/PM format ---- */}
               <div className="space-y-2 animate-fade-in delay-600">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Event Time
-                </label>
+                <label className="block text-sm font-semibold text-gray-700">Event Time</label>
                 <div className="flex gap-2">
-                  {/* Hour */}
                   <div className="flex-1">
-                    <select
-                      value={timeHour}
-                      onChange={(e) => handleTimeChange('hour', e.target.value)}
-                      onFocus={() => setFocusedField("time")}
-                      onBlur={() => setFocusedField("")}
+                    <select value={timeHour} onChange={(e) => handleTimeChange('hour', e.target.value)} onFocus={() => setFocusedField("time")} onBlur={() => setFocusedField("")}
                       className={`w-full px-3 py-3 border rounded-xl shadow-sm transition-all duration-300 transform ${
-                        focusedField === "time"
-                          ? "border-orange-400 ring-4 ring-orange-100 scale-105 shadow-lg"
-                          : "border-gray-300 hover:border-gray-400"
-                      } ${errors.time ? "border-red-400 ring-red-100" : ""} 
-                      focus:outline-none bg-white/70 backdrop-blur-sm`}
-                    >
+                        focusedField === "time" ? "border-orange-400 ring-4 ring-orange-100 scale-105 shadow-lg" : "border-gray-300 hover:border-gray-400"
+                      } ${errors.time ? "border-red-400 ring-red-100" : ""} focus:outline-none bg-white/70 backdrop-blur-sm`}>
                       <option value="">Hour</option>
-                      {hours.map(hour => (
-                        <option key={hour} value={hour}>{hour}</option>
-                      ))}
+                      {hours.map(hour => (<option key={hour} value={hour}>{hour}</option>))}
                     </select>
                   </div>
-                  
-                  {/* Colon */}
                   <div className="flex items-center justify-center px-2">
                     <span className="text-2xl font-bold text-gray-400">:</span>
                   </div>
-                  
-                  {/* Minute */}
                   <div className="flex-1">
-                    <select
-                      value={timeMinute}
-                      onChange={(e) => handleTimeChange('minute', e.target.value)}
-                      onFocus={() => setFocusedField("time")}
-                      onBlur={() => setFocusedField("")}
+                    <select value={timeMinute} onChange={(e) => handleTimeChange('minute', e.target.value)} onFocus={() => setFocusedField("time")} onBlur={() => setFocusedField("")}
                       className={`w-full px-3 py-3 border rounded-xl shadow-sm transition-all duration-300 transform ${
-                        focusedField === "time"
-                          ? "border-orange-400 ring-4 ring-orange-100 scale-105 shadow-lg"
-                          : "border-gray-300 hover:border-gray-400"
-                      } ${errors.time ? "border-red-400 ring-red-100" : ""} 
-                      focus:outline-none bg-white/70 backdrop-blur-sm`}
-                    >
+                        focusedField === "time" ? "border-orange-400 ring-4 ring-orange-100 scale-105 shadow-lg" : "border-gray-300 hover:border-gray-400"
+                      } ${errors.time ? "border-red-400 ring-red-100" : ""} focus:outline-none bg-white/70 backdrop-blur-sm`}>
                       <option value="">Min</option>
-                      {minutes.map(minute => (
-                        <option key={minute} value={minute}>{minute}</option>
-                      ))}
+                      {minutes.map(minute => (<option key={minute} value={minute}>{minute}</option>))}
                     </select>
                   </div>
-                  
-                  {/* AM/PM */}
                   <div className="flex-shrink-0">
-                    <select
-                      value={timeAmPm}
-                      onChange={(e) => handleTimeChange('ampm', e.target.value)}
-                      onFocus={() => setFocusedField("time")}
-                      onBlur={() => setFocusedField("")}
+                    <select value={timeAmPm} onChange={(e) => handleTimeChange('ampm', e.target.value)} onFocus={() => setFocusedField("time")} onBlur={() => setFocusedField("")}
                       className={`px-3 py-3 border rounded-xl shadow-sm transition-all duration-300 transform ${
-                        focusedField === "time"
-                          ? "border-orange-400 ring-4 ring-orange-100 scale-105 shadow-lg"
-                          : "border-gray-300 hover:border-gray-400"
-                      } ${errors.time ? "border-red-400 ring-red-100" : ""} 
-                      focus:outline-none bg-white/70 backdrop-blur-sm`}
-                    >
+                        focusedField === "time" ? "border-orange-400 ring-4 ring-orange-100 scale-105 shadow-lg" : "border-gray-300 hover:border-gray-400"
+                      } ${errors.time ? "border-red-400 ring-red-100" : ""} focus:outline-none bg-white/70 backdrop-blur-sm`}>
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
                     </select>
                   </div>
                 </div>
-                
-                {/* Display selected time */}
                 {formData.time && (
                   <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
                     Selected time: <span className="font-semibold">{formData.time}</span>
                   </div>
                 )}
-                
-                {errors.time && (
-                  <p className="text-red-500 text-xs animate-shake">
-                    {errors.time}
-                  </p>
-                )}
+                {errors.time && (<p className="text-red-500 text-xs animate-shake">{errors.time}</p>)}
               </div>
 
               {/* ---- Type ---- */}
@@ -471,43 +461,22 @@ function Form() {
                 {errors.type && (<p className="text-red-500 text-xs animate-shake">{errors.type}</p>)}
               </div>
 
-              {/* ---- Description Field - New Optional Field ---- */}
+              {/* ---- Description ---- */}
               <div className="space-y-2 animate-fade-in delay-750">
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-semibold text-gray-700"
-                >
-                  Description
-                  <span className="text-gray-400 font-normal text-xs ml-1">(Optional)</span>
+                <label htmlFor="description" className="block text-sm font-semibold text-gray-700">
+                  Description<span className="text-gray-400 font-normal text-xs ml-1">(Optional)</span>
                 </label>
                 <div className="relative">
-                  <textarea
-                    name="description"
-                    id="description"
-                    rows={4}
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    onFocus={() => setFocusedField("description")}
-                    onBlur={() => setFocusedField("")}
+                  <textarea name="description" id="description" rows={4} value={formData.description} onChange={handleInputChange} onFocus={() => setFocusedField("description")} onBlur={() => setFocusedField("")}
                     className={`w-full px-4 py-3 border rounded-xl shadow-sm placeholder-gray-400 transition-all duration-300 transform resize-none ${
-                      focusedField === "description"
-                        ? "border-teal-400 ring-4 ring-teal-100 scale-105 shadow-lg"
-                        : "border-gray-300 hover:border-gray-400"
-                    } ${errors.description ? "border-red-400 ring-red-100" : ""} 
-                    focus:outline-none bg-white/70 backdrop-blur-sm`}
-                    placeholder="Provide additional details about your event (optional)"
-                  />
+                      focusedField === "description" ? "border-teal-400 ring-4 ring-teal-100 scale-105 shadow-lg" : "border-gray-300 hover:border-gray-400"
+                    } ${errors.description ? "border-red-400 ring-red-100" : ""} focus:outline-none bg-white/70 backdrop-blur-sm`}
+                    placeholder="Provide additional details about your event (optional)" />
                 </div>
                 {formData.description.length > 0 && (
-                  <div className="text-xs text-gray-500 text-right">
-                    {formData.description.length} characters
-                  </div>
+                  <div className="text-xs text-gray-500 text-right">{formData.description.length} characters</div>
                 )}
-                {errors.description && (
-                  <p className="text-red-500 text-xs animate-shake">
-                    {errors.description}
-                  </p>
-                )}
+                {errors.description && (<p className="text-red-500 text-xs animate-shake">{errors.description}</p>)}
               </div>
 
               {/* ---- Buttons ---- */}
@@ -538,24 +507,11 @@ function Form() {
       </div>
 
       {/* ---- Success Animation ---- */}
-      <div
-        id="success-animation"
-        className="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      >
+      <div id="success-animation" className="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-2xl p-8 text-center animate-bounce">
           <div className="text-green-500 mb-4">
-            <svg
-              className="w-16 h-16 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-green-600 mb-2">Success!</h2>

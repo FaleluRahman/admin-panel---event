@@ -492,7 +492,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
                       </h6>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <p className="text-xl font-semibold text-gray-700">#result</p>
+                      <p className="text-xl font-semibold text-gray-700">#program_id</p>
                       <h6 className="font-bold text-8xl bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-700">
                         {selectedProgram?.id}
                       </h6>
