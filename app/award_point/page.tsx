@@ -1,5 +1,3 @@
-
-
 "use client";
 import { useState, useEffect } from "react";
 import {
@@ -97,13 +95,14 @@ const AdminPanel = () => {
           });
           
           const categories = Array.from(
-  new Set(
-    individualPrograms
-      .map((p: any) => p.category)
-      .filter((cat: any): cat is string => typeof cat === "string")
-  )
-) as string[];
-
+            new Set(
+              individualPrograms
+                .map((p: any) => p.category)
+                .filter((cat: any): cat is string => typeof cat === "string")
+            )
+          ) as string[];
+          
+          setAllCategories(categories);
         }
       } catch (err) {
         console.error("Error fetching categories:", err);
@@ -357,6 +356,7 @@ const AdminPanel = () => {
   return (
     <AdminLayout>
     <div className="min-h-screen bg-gray-50">
+
       {/* Toast Notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((toast) => (
