@@ -54,6 +54,7 @@ const AdminPanel = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterType, setFilterType] = useState("all"); // "all", "individual", "group"
   const [currentPage, setCurrentPage] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const [allCategories, setAllCategories] = useState<string[]>([]);
@@ -90,13 +91,10 @@ const AdminPanel = () => {
         
         if (data.success && data.data) {
           const allPrograms = Array.isArray(data.data) ? data.data : [];
-          const individualPrograms = allPrograms.filter((program: any) => {
-            return program.isGroup === 0 || program.isGroup === "0";
-          });
           
           const categories = Array.from(
             new Set(
-              individualPrograms
+              allPrograms
                 .map((p: any) => p.category)
                 .filter((cat: any): cat is string => typeof cat === "string")
             )
@@ -116,7 +114,7 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchPrograms();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage, searchTerm, filterCategory]);
+  }, [currentPage, searchTerm, filterCategory, filterType]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -124,7 +122,7 @@ const AdminPanel = () => {
       setCurrentPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, filterCategory]);
+  }, [searchTerm, filterCategory, filterType]);
 
   const fetchPrograms = async () => {
     setLoading(true);
@@ -140,14 +138,21 @@ const AdminPanel = () => {
       if (data.success && data.data) {
         const allPrograms = Array.isArray(data.data) ? data.data : [];
         
-        // Filter by isGroup field (0 = individual, 1 = group)
-        let individualPrograms = allPrograms.filter((program: any) => {
-          return program.isGroup === 0 || program.isGroup === "0";
-        });
+        // Filter by type (individual/group)
+        let filteredPrograms = allPrograms;
+        if (filterType === "individual") {
+          filteredPrograms = allPrograms.filter((program: any) => {
+            return program.isGroup === 0 || program.isGroup === "0";
+          });
+        } else if (filterType === "group") {
+          filteredPrograms = allPrograms.filter((program: any) => {
+            return program.isGroup === 1 || program.isGroup === "1";
+          });
+        }
 
         // Apply search filter
         if (searchTerm) {
-          individualPrograms = individualPrograms.filter((program: any) =>
+          filteredPrograms = filteredPrograms.filter((program: any) =>
             program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             program.category.toLowerCase().includes(searchTerm.toLowerCase())
           );
@@ -155,24 +160,24 @@ const AdminPanel = () => {
 
         // Apply category filter
         if (filterCategory !== "all") {
-          individualPrograms = individualPrograms.filter(
+          filteredPrograms = filteredPrograms.filter(
             (program: any) => program.category === filterCategory
           );
         }
 
         // Set total results
-        setTotalResults(individualPrograms.length);
+        setTotalResults(filteredPrograms.length);
 
         // Paginate (10 items per page)
         const itemsPerPage = 10;
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
-        const paginatedPrograms = individualPrograms.slice(startIndex, endIndex);
+        const paginatedPrograms = filteredPrograms.slice(startIndex, endIndex);
 
         setPrograms(paginatedPrograms);
         
-        if (individualPrograms.length === 0) {
-          setError("No individual programs found");
+        if (filteredPrograms.length === 0) {
+          setError("No programs found");
         }
       } else {
         setError("Failed to fetch programs");
@@ -273,7 +278,7 @@ const AdminPanel = () => {
         jamia_id: jamiaId,
         student_name: resultItem.student.trim(),
         program_name: modalResults?.program?.name || selectedProgram?.name || "",
-        program_type: "individual",
+        program_type: selectedProgram?.isGroup === 1 || selectedProgram?.isGroup === "1" ? "group" : "individual",
         rank_position: parseInt(String(resultItem.rank)),
       };
 
@@ -332,6 +337,7 @@ const AdminPanel = () => {
 
   const clearFilters = () => {
     setFilterCategory("all");
+    setFilterType("all");
     setSearchTerm("");
   };
 
@@ -400,9 +406,9 @@ const AdminPanel = () => {
                 <Users className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Points Assignment Portal</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Points Portal</h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  Assign points to students based on individual program results
+                  Assign points to students program results
                 </p>
               </div>
             </div>
@@ -434,7 +440,7 @@ const AdminPanel = () => {
 
         {/* Filters */}
         <div className="mb-6 bg-white rounded-lg shadow-sm border p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Search Programs</label>
               <div className="relative">
@@ -447,6 +453,19 @@ const AdminPanel = () => {
                   placeholder="Search by name or category"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Program Type</label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+              >
+                <option value="all">All Programs</option>
+                <option value="individual">Individual Only</option>
+                <option value="group">Group Only</option>
+              </select>
             </div>
 
             <div>
@@ -497,6 +516,7 @@ const AdminPanel = () => {
                 <tr className="bg-gradient-to-r from-pink-50 to-violet-50 border-b-2 border-violet-200">
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">ID</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">Program Name</th>
+                  <th className="px-6  py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">Type</th>
                   <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wide">Category</th>
                   <th className="px-6 py-4 text-center text-sm font-bold text-gray-700 uppercase tracking-wide">Actions</th>
                 </tr>
@@ -504,7 +524,7 @@ const AdminPanel = () => {
               <tbody className="bg-white divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center">
+                    <td colSpan={5} className="px-6 py-12 text-center">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto" />
                     </td>
                   </tr>
@@ -517,6 +537,15 @@ const AdminPanel = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-base font-bold text-gray-900 uppercase">{program.name}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                        program.isGroup === 1 || program.isGroup === "1" 
+                          ? "bg-blue-100 text-blue-800 border border-blue-200" 
+                          : "bg-green-100 text-green-800 border border-green-200"
+                      }`}>
+                        {program.isGroup === 1 || program.isGroup === "1" ? "Group" : "Individual"}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-pink-100 to-violet-100 text-violet-800 border border-violet-200">
@@ -542,9 +571,9 @@ const AdminPanel = () => {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 mb-4">
                 <Users className="w-10 h-10 text-violet-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">No individual programs found</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No programs found</h3>
               <p className="text-sm text-gray-500">
-                Try adjusting your filters or check back later for individual programs
+                Try adjusting your filters or check back later for programs
               </p>
             </div>
           )}
@@ -667,10 +696,6 @@ const AdminPanel = () => {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b-2">
-                          <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Place</th>
-                          <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Jamia ID</th>
-                          <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Name</th>
-                          <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Campus</th>
                           <th className="text-left py-3 px-2 font-semibold text-gray-700 uppercase text-sm">Action</th>
                         </tr>
                       </thead>
