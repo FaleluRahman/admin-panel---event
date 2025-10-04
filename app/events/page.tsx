@@ -584,8 +584,7 @@ export default function Page() {
                       let jamiaId = detectedCodes[0]?.rawValue || "";
                       jamiaId = jamiaId.trim().toUpperCase();
 
-                      const jamiaIdPattern = /^\d{4}[A-Z]{2,3}\d{3,4}$/;
-                      if (jamiaId && jamiaIdPattern.test(jamiaId)) {
+const jamiaIdPattern = /^(\d{4}[A-Z]{2,3}\d{3,4}|[A-Z]{2,3}\d{3})$/;                      if (jamiaId && jamiaIdPattern.test(jamiaId)) {
                         handleScan(jamiaId);
                       } else if (jamiaId) {
                         setScanStatus("error");
