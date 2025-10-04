@@ -1,3 +1,5 @@
+
+
 "use client";
 import { useState, useEffect } from "react";
 import {
@@ -11,23 +13,60 @@ import {
   RefreshCw,
   Search,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import AdminLayout from "@/components/layouts/AdminLayout";
-export const dynamic = "force-dynamic";
+
+interface Program {
+  id: number;
+  name: string;
+  category: string;
+  isGroup: number | string;
+}
+
+interface Toast {
+  id: number;
+  type: string;
+  message: string;
+}
+
+interface Result {
+  id: string;
+  rank: number | string;
+  jamiaNo?: string;
+  student: string;
+  team?: string;
+  isAssigned: boolean;
+}
+
+interface ModalResults {
+  success: boolean;
+  data: Result[];
+  program?: {
+    name: string;
+    category: string;
+  };
+}
 
 const AdminPanel = () => {
-  const [programs, setPrograms] = useState<any[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<any[]>([]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
 
   const [showModal, setShowModal] = useState(false);
-  const [selectedProgram, setSelectedProgram] = useState<any>(null);
-  const [modalResults, setModalResults] = useState<any>(null);
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [modalResults, setModalResults] = useState<ModalResults | null>(null);
   const [loadingModal, setLoadingModal] = useState(false);
-  const [assigningPoints, setAssigningPoints] = useState<any>({});
+  const [assigningPoints, setAssigningPoints] = useState<Record<string, boolean>>({});
+
+
 
   const API_BASE = "https://rend-application.abaqas.in/award/actions.php?api=b1daf1bbc7bbd214045af";
   const EXTERNAL_API = "https://rendezvous.abaqas.in/programs";
@@ -42,33 +81,96 @@ const AdminPanel = () => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
+  // Fetch all programs once for categories
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        const response = await fetch(
+          `${EXTERNAL_API}/action.php?action=pagination&status=announced&limit=1000`
+        );
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          const allPrograms = Array.isArray(data.data) ? data.data : [];
+          const individualPrograms = allPrograms.filter((program: any) => {
+            return program.isGroup === 0 || program.isGroup === "0";
+          });
+          
+          const categories = Array.from(
+  new Set(
+    individualPrograms
+      .map((p: any) => p.category)
+      .filter((cat: any): cat is string => typeof cat === "string")
+  )
+) as string[];
+
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+    
+    fetchAllCategories();
+  }, [EXTERNAL_API]);
+
+  // Fetch programs based on current page and filters
   useEffect(() => {
     fetchPrograms();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, searchTerm, filterCategory]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, filterCategory]);
 
   const fetchPrograms = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log("Fetching programs...");
+      // Fetch all programs with high limit to filter on client side
       const response = await fetch(
-        `${EXTERNAL_API}/action.php?action=pagination&status=announced`
+        `${EXTERNAL_API}/action.php?action=pagination&status=announced&limit=1000`
       );
       const data = await response.json();
-      console.log("Programs API Response:", data);
 
       if (data.success && data.data) {
         const allPrograms = Array.isArray(data.data) ? data.data : [];
-        console.log("Total programs:", allPrograms.length);
         
-        // FIXED: Filter by isGroup field (0 = individual, 1 = group)
-        const individualPrograms = allPrograms.filter((program: any) => {
+        // Filter by isGroup field (0 = individual, 1 = group)
+        let individualPrograms = allPrograms.filter((program: any) => {
           return program.isGroup === 0 || program.isGroup === "0";
         });
-        
-        console.log("Individual programs found:", individualPrograms.length);
-        setPrograms(individualPrograms);
+
+        // Apply search filter
+        if (searchTerm) {
+          individualPrograms = individualPrograms.filter((program: any) =>
+            program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            program.category.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+
+        // Apply category filter
+        if (filterCategory !== "all") {
+          individualPrograms = individualPrograms.filter(
+            (program: any) => program.category === filterCategory
+          );
+        }
+
+        // Set total results
+        setTotalResults(individualPrograms.length);
+
+        // Paginate (10 items per page)
+        const itemsPerPage = 10;
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const paginatedPrograms = individualPrograms.slice(startIndex, endIndex);
+
+        setPrograms(paginatedPrograms);
         
         if (individualPrograms.length === 0) {
           setError("No individual programs found");
@@ -84,23 +186,20 @@ const AdminPanel = () => {
     }
   };
 
-  const handleOpenModal = async (program: any) => {
+  const handleOpenModal = async (program: Program) => {
     setSelectedProgram(program);
     setShowModal(true);
     setLoadingModal(true);
     setModalResults(null);
 
     try {
-      console.log("Fetching results for program:", program.id);
       const response = await fetch(
         `${EXTERNAL_API}/results.php?action=resultCheck&program=${program.id}`
       );
       const data = await response.json();
-      console.log("Results API Response:", data);
 
       if (data.success && data.data) {
         const resultsArray = Array.isArray(data.data) ? data.data : [];
-        console.log("Total results found:", resultsArray.length);
 
         // Check assignment status for each result
         const resultsWithStatus = await Promise.all(
@@ -108,19 +207,15 @@ const AdminPanel = () => {
             try {
               const jamiaId = result.jamiaNo || "";
               if (!jamiaId) {
-                console.warn("Missing jamia ID for result:", result);
                 return { ...result, isAssigned: false, id: result.rank + "-" + result.student };
               }
 
-              // Add unique ID if missing
               const resultId = result.id || `${program.id}-${jamiaId}-${result.rank}`;
               
               const checkUrl = `${API_BASE}&action=check_assignment&result_id=${resultId}&program_id=${program.id}&jamia_id=${jamiaId}`;
-              console.log("Checking assignment for:", result.student, jamiaId);
               
               const checkRes = await fetch(checkUrl);
               const checkData = await checkRes.json();
-              console.log(`Assignment status for ${result.student}:`, checkData);
               
               return {
                 ...result,
@@ -128,7 +223,6 @@ const AdminPanel = () => {
                 isAssigned: checkData.is_assigned || false
               };
             } catch (err) {
-              console.error(`Error checking assignment for ${result.student}:`, err);
               return { 
                 ...result, 
                 id: result.id || `${program.id}-${result.jamiaNo}-${result.rank}`,
@@ -138,26 +232,23 @@ const AdminPanel = () => {
           })
         );
 
-        console.log("Results with status:", resultsWithStatus);
-
         setModalResults({
           ...data,
           data: resultsWithStatus
         });
       } else {
         addToast("error", "No results found for this program");
-        setModalResults({ data: [] });
+        setModalResults({ success: false, data: [] });
       }
     } catch (err) {
       addToast("error", "Network error: Could not fetch results");
-      console.error("Modal fetch error:", err);
-      setModalResults({ data: [] });
+      setModalResults({ success: false, data: [] });
     } finally {
       setLoadingModal(false);
     }
   };
 
-  const handleAssignPoints = async (resultItem: any) => {
+  const handleAssignPoints = async (resultItem: Result) => {
     const jamiaId = resultItem.jamiaNo || "";
     if (!jamiaId) {
       addToast("error", "Missing Jamia ID for this student");
@@ -165,37 +256,27 @@ const AdminPanel = () => {
     }
 
     const uniqueKey = `${resultItem.id}-${jamiaId}`;
-    setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: true }));
+    setAssigningPoints((prev) => ({ ...prev, [uniqueKey]: true }));
 
     try {
-     const pointsMap: Record<number, number> = { 1: 100, 2: 80, 3: 60 };
-const points = pointsMap[Number(resultItem.rank)] || 0;
+      const pointsMap: Record<number, number> = { 1: 100, 2: 80, 3: 60 };
+      const points = pointsMap[Number(resultItem.rank)] || 0;
 
       if (points === 0) {
         addToast("error", "Only ranks 1-3 are eligible for points");
-        setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
+        setAssigningPoints((prev) => ({ ...prev, [uniqueKey]: false }));
         return;
       }
 
-      console.log("Assigning points for:", {
-        result_id: resultItem.id,
-        jamia_id: jamiaId,
-        student: resultItem.student,
-        rank: resultItem.rank,
-        points: points
-      });
-
       const payload = {
         result_id: resultItem.id,
-        program_id: selectedProgram.id,
+        program_id: selectedProgram?.id,
         jamia_id: jamiaId,
         student_name: resultItem.student.trim(),
         program_name: modalResults?.program?.name || selectedProgram?.name || "",
         program_type: "individual",
-        rank_position: parseInt(resultItem.rank),
+        rank_position: parseInt(String(resultItem.rank)),
       };
-
-      console.log("Sending payload:", payload);
 
       const response = await fetch(`${API_BASE}&action=add_and_assign`, {
         method: "POST",
@@ -207,23 +288,19 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
       });
 
       const responseText = await response.text();
-      console.log("Assignment response text:", responseText);
 
       if (!responseText || responseText.trim() === '') {
         addToast("error", "Empty response from server");
-        setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
+        setAssigningPoints((prev) => ({ ...prev, [uniqueKey]: false }));
         return;
       }
 
       let data;
       try {
         data = JSON.parse(responseText.trim());
-        console.log("Parsed response:", data);
       } catch (parseError) {
-        console.error("Parse error:", parseError);
-        console.error("Raw text:", responseText);
         addToast("error", "Invalid server response: " + responseText.substring(0, 100));
-        setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
+        setAssigningPoints((prev) => ({ ...prev, [uniqueKey]: false }));
         return;
       }
 
@@ -233,12 +310,11 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
           `${data.points_assigned} points assigned to ${data.student_name}! New balance: ${data.new_wallet_balance} pts`
         );
 
-        // Update UI to show assigned
-        setModalResults((prev: any) => {
+        setModalResults((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            data: prev.data.map((item: any) =>
+            data: prev.data.map((item) =>
               item.id === resultItem.id && item.jamiaNo === jamiaId
                 ? { ...item, isAssigned: true }
                 : item
@@ -249,33 +325,25 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
         addToast("error", data.message || "Failed to assign points");
       }
     } catch (err: any) {
-      console.error("Error:", err);
       addToast("error", err.message || "Network error");
     } finally {
-      setAssigningPoints((prev: any) => ({ ...prev, [uniqueKey]: false }));
+      setAssigningPoints((prev) => ({ ...prev, [uniqueKey]: false }));
     }
   };
-
-  const getUniqueCategories = () => {
-    return [...new Set(programs.map((p: any) => p.category))].sort();
-  };
-
-  const filteredPrograms = programs.filter((program: any) => {
-    const categoryMatch = filterCategory === "all" || program.category === filterCategory;
-    const searchMatch =
-      searchTerm === "" ||
-      program.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      program.category.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return categoryMatch && searchMatch;
-  });
 
   const clearFilters = () => {
     setFilterCategory("all");
     setSearchTerm("");
   };
 
-  if (loading) {
+  const totalPages = Math.ceil(totalResults / 10);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (loading && currentPage === 1) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -339,7 +407,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
               </div>
             </div>
             <button
-              onClick={fetchPrograms}
+              onClick={() => fetchPrograms()}
               disabled={loading}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
@@ -389,7 +457,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
               >
                 <option value="all">All Categories</option>
-                {getUniqueCategories().map((category) => (
+                {allCategories.map((category) => (
                   <option key={category} value={category}>{category}</option>
                 ))}
               </select>
@@ -405,10 +473,22 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
               </button>
             </div>
           </div>
+
+          {/* Results Count */}
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <span className="text-gray-600 font-medium">
+              {totalResults} {totalResults === 1 ? 'program' : 'programs'} found
+            </span>
+            {totalPages > 1 && (
+              <span className="text-gray-500">
+                Page {currentPage} of {totalPages}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Programs Table */}
-        <div className="bg-white rounded-lg shadow-lg border overflow-hidden">
+        <div className="bg-white rounded-lg shadow-lg border overflow-hidden mb-6">
           <div className="h-2 bg-gradient-to-r from-pink-400 to-violet-500"></div>
           
           <div className="overflow-x-auto">
@@ -422,7 +502,13 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {filteredPrograms.map((program) => (
+                {loading ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center">
+                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto" />
+                    </td>
+                  </tr>
+                ) : programs.map((program) => (
                   <tr key={program.id} className="hover:bg-gradient-to-r hover:from-pink-50 hover:to-violet-50 transition-all duration-150">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 text-sm font-bold text-violet-700">
@@ -451,7 +537,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
             </table>
           </div>
 
-          {filteredPrograms.length === 0 && (
+          {programs.length === 0 && !loading && (
             <div className="text-center py-16">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 mb-4">
                 <Users className="w-10 h-10 text-violet-600" />
@@ -463,6 +549,75 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <div className="flex items-center justify-between gap-2">
+              {/* Previous Button */}
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                  currentPage === 1
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-pink-500 to-violet-600 text-white hover:from-pink-600 hover:to-violet-700 active:scale-95'
+                }`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => {
+                    return (
+                      page === 1 ||
+                      page === totalPages ||
+                      Math.abs(page - currentPage) <= 1
+                    );
+                  })
+                  .map((page, index, array) => {
+                    const prevPage = array[index - 1];
+                    const showEllipsis = prevPage && page - prevPage > 1;
+
+                    return (
+                      <div key={page} className="flex items-center gap-1.5">
+                        {showEllipsis && (
+                          <span className="px-2 text-gray-400 text-sm">...</span>
+                        )}
+                        <button
+                          onClick={() => goToPage(page)}
+                          className={`w-10 h-10 rounded-lg font-semibold text-sm transition-all ${
+                            currentPage === page
+                              ? 'bg-gradient-to-r from-pink-500 to-violet-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:scale-95'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                  currentPage === totalPages
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-pink-500 to-violet-600 text-white hover:from-pink-600 hover:to-violet-700 active:scale-95'
+                }`}
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal */}
@@ -492,7 +647,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
                       </h6>
                     </div>
                     <div className="flex items-baseline gap-2">
-                      <p className="text-xl font-semibold text-gray-700">#program_id</p>
+                      <p className="text-xl font-semibold text-gray-200">#program_id</p>
                       <h6 className="font-bold text-8xl bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-violet-700">
                         {selectedProgram?.id}
                       </h6>
@@ -520,7 +675,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
                         </tr>
                       </thead>
                       <tbody>
-                        {modalResults.data.map((result: any, index: number) => {
+                        {modalResults.data.map((result, index) => {
                           const jamiaId = result.jamiaNo || "";
                           const uniqueKey = `${result.id}-${jamiaId}`;
                           
@@ -581,7 +736,7 @@ const points = pointsMap[Number(resultItem.rank)] || 0;
                 <div className="text-center py-12">
                   <Award className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">No results found</h3>
-                  <p className="mt-1 text-sm text-gray-500">This program doesn't have any results yet</p>
+                  <p className="mt-1 text-sm text-gray-500">This program doesn&apos;t have any results yet</p>
                   <button
                     onClick={() => setShowModal(false)}
                     className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
