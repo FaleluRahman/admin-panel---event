@@ -13,9 +13,9 @@ interface PDFDownloadButtonProps {
 
 const PDFDownloadButton: React.FC<PDFDownloadButtonProps> = ({ 
   data, 
-  title = "VR HUB", 
+  title = "Pending list", 
   subtitle = "Transaction History",
-  fileName = "transaction_history_VR_HUB"
+  fileName = "transaction_history_pending_list"
 }) => {
   const handleDownloadPDF = () => {
     // Format date consistently
@@ -39,88 +39,156 @@ const PDFDownloadButton: React.FC<PDFDownloadButtonProps> = ({
       <html>
       <head>
         <title>${title} - ${subtitle}</title>
-        <style>
+   <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
           body { 
-            font-family: Arial, sans-serif; 
-            margin: 30px; 
-            color: #333; 
-            line-height: 1.4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 40px; 
+            color: #2c3e50; 
+            line-height: 1.6;
+            background: #ffffff;
           }
           
           .header { 
             text-align: center; 
-            margin-bottom: 30px; 
-            padding-bottom: 15px; 
-            border-bottom: 2px solid #333;
+            margin-bottom: 35px; 
+            padding: 25px 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
           }
           
           .header h1 { 
-            color: #1a1a1a; 
-            font-size: 24px; 
-            margin: 0 0 5px 0;
-            font-weight: bold;
+            color: #ffffff; 
+            font-size: 32px; 
+            margin: 0 0 10px 0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
           }
           
           .header .subtitle { 
-            color: #666; 
-            font-size: 16px;
-            margin: 0 0 10px 0;
+            color: #f0f0f0; 
+            font-size: 18px;
+            margin: 0 0 12px 0;
+            font-weight: 500;
           }
           
           .header .date {
-            font-size: 12px;
-            color: #888;
+            font-size: 13px;
+            color: #e0e0e0;
+            background: rgba(255,255,255,0.15);
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 20px;
+            margin-top: 8px;
           }
           
           .summary { 
-            margin-bottom: 25px; 
-            font-size: 14px;
+            margin-bottom: 30px; 
+            background: #f8f9fa;
+            padding: 20px 25px;
+            border-radius: 8px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
           }
           
           .summary p {
-            margin: 5px 0;
+            margin: 8px 0;
+            font-size: 15px;
+            display: flex;
+            justify-content: space-between;
+          }
+          
+          .summary strong {
+            color: #2c3e50;
+            font-weight: 600;
+          }
+          
+          .summary span {
+            color: #667eea;
+            font-weight: 700;
           }
           
           table { 
             width: 100%; 
-            border-collapse: collapse; 
+            border-collapse: separate;
+            border-spacing: 0;
             margin-top: 20px; 
-            font-size: 13px;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
           }
           
           th { 
-            background-color: #f5f5f5; 
-            padding: 10px 8px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 12px; 
             text-align: left; 
-            border: 1px solid #ddd;
-            font-weight: bold;
-            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
           }
           
           td { 
-            padding: 8px; 
-            border: 1px solid #ddd; 
+            padding: 12px; 
+            border-bottom: 1px solid #e9ecef; 
+            background: white;
+          }
+          
+          tbody tr {
+            transition: background-color 0.2s ease;
           }
           
           tbody tr:nth-child(even) { 
-            background-color: #fafafa; 
+            background-color: #f8f9fa; 
+          }
+          
+          tbody tr:hover {
+            background-color: #e7e9ff;
+          }
+          
+          tbody tr:last-child td {
+            border-bottom: none;
           }
           
           .text-center { text-align: center; }
-          .text-right { text-align: right; }
+          .text-right { text-align: right; font-weight: 600; }
           
           .footer {
-            margin-top: 30px;
+            margin-top: 40px;
             text-align: center;
-            color: #666;
-            font-size: 11px;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
+            color: #7f8c8d;
+            font-size: 12px;
+            border-top: 2px solid #e9ecef;
+            padding-top: 20px;
+            font-style: italic;
           }
           
           @media print {
-            body { margin: 20px; }
-            @page { margin: 15mm; }
+            body { 
+              margin: 20px;
+              background: white;
+            }
+            @page { 
+              margin: 15mm;
+              size: A4;
+            }
+            .header {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+            tbody tr:hover {
+              background-color: inherit;
+            }
           }
         </style>
       </head>
